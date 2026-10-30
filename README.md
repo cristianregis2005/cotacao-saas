@@ -15,7 +15,13 @@ npm run dev       # roda localmente
 
 ## Segredos
 
-Local: crie `.dev.vars` (já ignorado pelo git) com `SUPERFRETE_TOKEN=...`.
+
 Produção: `npx wrangler secret put SUPERFRETE_TOKEN`.
 
 Nunca cole tokens no chat nem no código.
+
+## Login por código
+
+- Antes de rodar localmente, copie `.dev.vars.exemplo` para `.dev.vars` e troque o `SEGREDO_LOGIN`.
+- Em `npm run dev`, o e-mail com o código é salvo em arquivo na pasta `.wrangler` (não é enviado de verdade).
+- Em produção: `npx wrangler secret put SEGREDO_LOGIN` e configurar o domínio em `EMAIL_REMETENTE` no `wrangler.jsonc`.

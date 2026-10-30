@@ -2,12 +2,20 @@
   "name": "cotacao-saas",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  // Banco D1: depois de criar com "wrangler d1 create cotacao-saas", cole o database_id aqui.
+  // Banco D1 criado com "wrangler d1 create cotacao-saas".
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "cotacao-saas",
       "database_id": "73bd4923-7484-4e67-8dfb-1e96db62e4cd"
     }
-  ]
+  ],
+  // Envio de e-mail (Cloudflare Email Service). Em "wrangler dev" os e-mails são salvos em arquivo.
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
+  "vars": {
+    // Troque pelo endereço do seu domínio depois de configurá-lo no Email Service.
+    "EMAIL_REMETENTE": "contato@SEU-DOMINIO.com.br"
+  }
 }

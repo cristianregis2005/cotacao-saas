@@ -1,17 +1,15 @@
 import { Hono } from "hono";
-
-// Variáveis do ambiente: banco D1 e segredos (produção: "wrangler secret put NOME").
-export interface Env {
-  DB: D1Database;
-  SUPERFRETE_TOKEN?: string;
-  SUPERFRETE_USER_AGENT?: string;
-}
+import type { Env } from "./env";
+import { authRotas } from "./auth/rotas";
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/api/saude", (c) => c.json({ ok: true }));
 
-// Ainda sem rotas de cotação: elas só serão liberadas depois do login,
-// para que os tokens das transportadoras não fiquem expostos a qualquer visitante.
+// Login por código de e-mail: /api/auth/codigo, /api/auth/verificar, /api/auth/eu, /api/auth/sair
+app.route("/api/auth", authRotas);
+
+// As rotas de cotação só serão liberadas para usuários logados (usuarioDaSessao),
+// para que os tokens das transportadoras não sejam usados por visitantes.
 
 export default app;

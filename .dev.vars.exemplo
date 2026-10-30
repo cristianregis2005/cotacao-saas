@@ -1,0 +1,2 @@
+# Copie para .dev.vars (ignorado pelo git) e troque o valor.
+SEGREDO_LOGIN=troque-por-um-texto-longo-e-aleatorio
