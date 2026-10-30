@@ -1,0 +1,9 @@
+# Segredos: nunca versionar (use "wrangler secret put" para produção)
+.dev.vars
+.env
+*.env
+
+node_modules/
+.wrangler/
+dist/
+.DS_Store

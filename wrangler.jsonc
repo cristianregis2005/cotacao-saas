@@ -1,0 +1,13 @@
+{
+  "name": "cotacao-saas",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Banco D1: depois de criar com "wrangler d1 create cotacao-saas", cole o database_id aqui.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cotacao-saas",
+      "database_id": "PREENCHER_APOS_CRIAR_O_BANCO"
+    }
+  ]
+}
