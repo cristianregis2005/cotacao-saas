@@ -1,2 +1,4 @@
 # Copie para .dev.vars (ignorado pelo git) e troque o valor.
 SEGREDO_LOGIN=troque-por-um-texto-longo-e-aleatorio
+# Em desenvolvimento, mostra o código de login no terminal em vez de enviar e-mail.
+EMAIL_SIMULADO=1

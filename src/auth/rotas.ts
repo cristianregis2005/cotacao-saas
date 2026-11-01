@@ -56,6 +56,12 @@ authRotas.post("/codigo", async (c) => {
     .bind(crypto.randomUUID(), email, await hashCodigo(c.env.SEGREDO_LOGIN, email, codigo), expira)
     .run();
 
+  if (c.env.EMAIL_SIMULADO === "1") {
+    // Só para desenvolvimento local (.dev.vars): mostra o código no terminal em vez de enviar e-mail.
+    console.log(`[DEV] Código de login para ${email}: ${codigo}`);
+    return c.json({ ok: true });
+  }
+
   try {
     await c.env.EMAIL.send({
       to: email,
