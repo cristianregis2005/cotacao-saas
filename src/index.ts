@@ -2,8 +2,11 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import { authRotas } from "./auth/rotas";
 import { cotacaoRotas } from "./cotacoes/rotas";
+import { PAGINA_HTML } from "./web/pagina";
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.get("/", (c) => c.html(PAGINA_HTML));
 
 app.get("/api/saude", (c) => c.json({ ok: true }));
 
