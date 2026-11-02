@@ -78,12 +78,12 @@ describe("montarPedidoFrenet", () => {
   it("monta o pedido com o código de serviço e o preço sem taxa", () => {
     const [pedido] = montarPedidoFrenet(dados(), VOLUME, {
       origem: "Frenet", codigo: "1", codigoTransportadora: "2", preco: 10.3, precoBase: 10, servico: "PAC",
-    } as never);
+    });
     expect(pedido.Order.Id).toBe(CHAVE);
     expect(pedido.Quotation.ShippingServiceCode).toBe("1");
     expect(pedido.Quotation.CarrierCode).toBe("2");
     expect(pedido.Quotation.ShippingPrice).toBe(10);
-    expect(pedido.Invoice ?? pedido.Order.Invoice.Key).toBe(CHAVE);
+    expect(pedido.Order.Invoice.Key).toBe(CHAVE);
   });
 });
 
