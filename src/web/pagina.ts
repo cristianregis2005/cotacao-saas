@@ -63,7 +63,7 @@ export const PAGINA_HTML = `<!doctype html>
 
   <section id="cotar" hidden>
     <div class="cartao linha">
-      <span id="quem"></span>
+      <span><span id="quem"></span><br><small id="uso" style="color:var(--suave)"></small></span>
       <button class="secundario" id="btn-sair" type="button">Sair</button>
     </div>
 
@@ -120,14 +120,21 @@ export const PAGINA_HTML = `<!doctype html>
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function entrarNaTela(usuario) {
+  function mostrarUso(uso) {
+    if (!uso) return;
+    var limite = uso.limite === null ? "ilimitado" : uso.limite;
+    texto($("uso"), "Cotações usadas neste mês: " + uso.usadas + " de " + limite);
+  }
+
+  function entrarNaTela(usuario, uso) {
     texto($("quem"), usuario.email);
+    mostrarUso(uso);
     mostrar("cotar");
   }
 
   function iniciar() {
     api("/api/auth/eu").then(function (r) {
-      if (r.ok) entrarNaTela(r.dados);
+      if (r.ok) entrarNaTela(r.dados, r.dados.uso);
       else mostrar("entrar");
     }).catch(function () { mostrar("entrar"); });
   }
@@ -160,7 +167,7 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       if (!r.ok) { texto($("msg-entrar"), r.dados.erro || "Código incorreto."); return; }
       $("codigo").value = "";
-      entrarNaTela(r.dados.usuario);
+      iniciar();
     }).catch(function () {
       botao.disabled = false;
       texto($("msg-entrar"), "Sem conexão. Tente de novo.");
@@ -237,6 +244,7 @@ export const PAGINA_HTML = `<!doctype html>
         return;
       }
       texto($("msg-cotar"), "");
+      mostrarUso(r.dados.uso);
       mostrarResultados(r.dados);
     }).catch(function () {
       botao.disabled = false;

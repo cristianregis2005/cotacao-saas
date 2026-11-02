@@ -3,6 +3,7 @@ import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../env";
 import { gerarCodigo, gerarToken, hashCodigo, hashToken, iguais } from "./codigos";
+import { verificarLimite } from "../planos";
 
 const COOKIE = "sessao";
 const VALIDADE_CODIGO_MIN = 10;
@@ -137,7 +138,13 @@ authRotas.post("/verificar", async (c) => {
 authRotas.get("/eu", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Não logado." }, 401);
-  return c.json({ email: usuario.email, nome: usuario.nome, admin: !!usuario.is_admin });
+  const situacao = await verificarLimite(c.env.DB, usuario.id, usuario.plano_id);
+  return c.json({
+    email: usuario.email,
+    nome: usuario.nome,
+    admin: !!usuario.is_admin,
+    uso: { usadas: situacao.usadas, limite: situacao.limite },
+  });
 });
 
 // 4) Sair: apaga a sessão no banco e o cookie no navegador.
