@@ -253,7 +253,7 @@ export const PAGINA_HTML = `<!doctype html>
     lista.forEach(function (c, i) {
       var tr = document.createElement("tr");
       if (ordem.campo === "preco" && ordem.sentido === 1 && i === 0) tr.className = "melhor";
-      [c.origem, c.transportadora || "-", c.servico || "-", (c.prazoDias != null ? c.prazoDias + " dia(s)" : "-")].forEach(function (t) {
+      [c.origem, c.transportadora || "-", c.servico || "-", (c.prazoDias != null ? c.prazoDias + " dia(s)" : (c.prazoTexto || "-"))].forEach(function (t) {
         var td = document.createElement("td");
         td.textContent = t;
         tr.appendChild(td);

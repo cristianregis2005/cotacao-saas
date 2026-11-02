@@ -24,6 +24,22 @@ export interface CotacaoEnvia {
   codigoServico?: string;
   preco: number;
   prazoDias?: number;
+  prazoTexto?: string; // prazo como a Envia informou, quando não dá para converter em dias
+}
+
+// Converte o prazo da Envia em dias. Aceita número, texto com número ("5 días") ou data AAAA-MM-DD.
+export function prazoEmDias(valor: unknown): number | undefined {
+  if (typeof valor === "number" && Number.isFinite(valor)) return valor;
+  if (typeof valor !== "string") return undefined;
+  const data = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor.trim());
+  if (data) {
+    const alvo = Date.UTC(Number(data[1]), Number(data[2]) - 1, Number(data[3]));
+    const hoje = new Date();
+    const inicioHoje = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+    return Math.max(0, Math.round((alvo - inicioHoje) / 86_400_000));
+  }
+  const numero = /\d+/.exec(valor);
+  return numero ? Number(numero[0]) : undefined;
 }
 
 export interface EntradaEnvia {
@@ -98,14 +114,16 @@ async function consultar(
     // totalPrice já inclui impostos e taxas.
     const preco = Number(item.totalPrice);
     if (!Number.isFinite(preco)) continue;
-    const prazo = Number(item.deliveryEstimate);
+    const prazo = prazoEmDias(item.deliveryEstimate);
+    const prazoTexto = item.deliveryEstimate != null ? String(item.deliveryEstimate) : undefined;
     cotacoes.push({
       transportadora: String(item.carrierDescription ?? item.carrier ?? transportadora),
       servico: item.serviceDescription ? String(item.serviceDescription) : item.service ? String(item.service) : undefined,
       codigoTransportadora: item.carrier ? String(item.carrier) : undefined,
       codigoServico: item.service ? String(item.service) : undefined,
       preco: Math.round(preco * 100) / 100,
-      prazoDias: Number.isFinite(prazo) ? prazo : undefined,
+      prazoDias: prazo,
+      prazoTexto: prazo === undefined ? prazoTexto : undefined,
     });
   }
 

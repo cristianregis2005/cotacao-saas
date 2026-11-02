@@ -14,6 +14,7 @@ export interface CotacaoUnificada {
   servico?: string;
   preco: number;
   prazoDias?: number;
+  prazoTexto?: string;
   codigo?: string | number;              // código do serviço na transportadora (usado no carrinho)
   codigoTransportadora?: string | number;
   precoBase?: number;
@@ -99,7 +100,7 @@ export async function cotarTodas(
           { token: cred.token },
         );
         avisosEnvia.push(...r.avisos);
-        return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));
+        return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, prazoTexto: c.prazoTexto, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));
       },
     },
   ];
