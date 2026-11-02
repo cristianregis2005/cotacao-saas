@@ -16,6 +16,6 @@
   ],
   "vars": {
     // Troque pelo endereço do seu domínio depois de configurá-lo no Email Service.
-    "EMAIL_REMETENTE": "contato@SEU-DOMINIO.com.br"
+    "EMAIL_REMETENTE": "contato@cliquefrete.com.br"
   }
 }
