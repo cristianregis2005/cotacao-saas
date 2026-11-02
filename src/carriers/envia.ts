@@ -84,11 +84,12 @@ async function consultar(
     return { erro: `HTTP ${resp.status}: ${(await resp.text()).slice(0, 200)}` };
   }
 
+  const bruto = await resp.text();
   let dados: { data?: Registro[] };
   try {
-    dados = (await resp.json()) as { data?: Registro[] };
+    dados = JSON.parse(bruto) as { data?: Registro[] };
   } catch {
-    return { erro: "Resposta não é JSON válido." };
+    return { erro: `Resposta não é JSON válido: ${bruto.slice(0, 200)}` };
   }
 
   const cotacoes: CotacaoEnvia[] = [];
@@ -107,7 +108,10 @@ async function consultar(
     });
   }
 
-  if (!cotacoes.length) return { erro: "respondeu sem cotação para esta rota e estes dados de endereço" };
+  if (!cotacoes.length) {
+    // Mostra a resposta da Envia para diagnosticar (endereço, telefone ou rota não atendida).
+    return { erro: `respondeu sem cotação para esta rota e estes dados de endereço. Resposta: ${bruto.slice(0, 300)}` };
+  }
   return { cotacoes };
 }
 
