@@ -39,6 +39,10 @@ export const PAGINA_HTML = `<!doctype html>
   button.ordenar { background: none; color: var(--texto); border: 0; padding: 0; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
   .dica { display: block; margin-top: 4px; font-size: 0.85rem; color: var(--suave); min-height: 1.2em; }
   .dica.erro { color: var(--erro); }
+  .cabecalho-recolhivel { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cabecalho-recolhivel h2 { margin: 0; }
+  .cabecalho-recolhivel .suave { font-size: 0.85rem; }
+  .cabecalho-recolhivel button { padding: 6px 10px; font-size: 0.85rem; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -71,16 +75,27 @@ export const PAGINA_HTML = `<!doctype html>
     </div>
 
     <section class="cartao" id="secao-carrinho">
-      <h2>Enviar o XML da nota</h2>
-      <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
-      <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
-      <p class="suave" id="nfe-resumo"></p>
-      <div class="grade" id="campos-nfe" hidden></div>
-      <p class="msg" id="msg-carrinho"></p>
+      <div class="cabecalho-recolhivel">
+        <h2>Enviar o XML da nota</h2>
+        <span class="suave" id="resumo-nfe"></span>
+        <button type="button" class="secundario" id="btn-nfe">Recolher</button>
+      </div>
+      <div id="corpo-nfe">
+        <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
+        <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
+        <p class="suave" id="nfe-resumo"></p>
+        <div class="grade" id="campos-nfe" hidden></div>
+        <p class="msg" id="msg-carrinho"></p>
+      </div>
     </section>
 
     <form id="form-cotacao" class="cartao">
-      <h2>Dados do envio</h2>
+      <div class="cabecalho-recolhivel">
+        <h2>Dados do envio</h2>
+        <span class="suave" id="resumo-dados"></span>
+        <button type="button" class="secundario" id="btn-dados">Recolher</button>
+      </div>
+      <div id="corpo-dados">
       <div class="grade">
         <label>CEP de origem <input id="cepOrigem" inputmode="numeric" required><small class="dica" id="dicaOrigem"></small></label>
         <label>CEP de destino <input id="cepDestino" inputmode="numeric" required><small class="dica" id="dicaDestino"></small></label>
@@ -92,6 +107,7 @@ export const PAGINA_HTML = `<!doctype html>
       </div>
       <button type="submit" id="btn-cotar">Cotar</button>
       <p class="msg erro" id="msg-cotar"></p>
+      </div>
     </form>
 
     <section class="cartao" id="resultado" hidden>
@@ -103,6 +119,7 @@ export const PAGINA_HTML = `<!doctype html>
         </table>
       </div>
       <ul class="avisos" id="avisos"></ul>
+      <p class="msg" id="msg-pedido"></p>
     </section>
 
   </section>
@@ -311,6 +328,7 @@ export const PAGINA_HTML = `<!doctype html>
         texto($("msg-cotar"), r.dados.erro || "Não consegui cotar. Tente de novo.");
         return;
       }
+      texto($("msg-pedido"), "");
       $("msg-cotar").className = "msg ok";
       texto($("msg-cotar"), "Cotação concluída: " + (r.dados.cotacoes || []).length + " opção(ões) encontrada(s).");
       ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
@@ -421,8 +439,8 @@ export const PAGINA_HTML = `<!doctype html>
       "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
     if (!confirm(pergunta)) return;
     botao.disabled = true;
-    $("msg-carrinho").className = "msg";
-    texto($("msg-carrinho"), "Criando o pedido...");
+    $("msg-pedido").className = "msg";
+    texto($("msg-pedido"), "Criando o pedido...");
     var corpo = {
       dados: dadosNfe,
       volume: ultimaEntrada,
@@ -435,18 +453,38 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       if (r.status === 401) { location.reload(); return; }
       if (!r.ok) {
-        $("msg-carrinho").className = "msg erro";
-        texto($("msg-carrinho"), r.dados.erro || "Não consegui criar o pedido.");
+        $("msg-pedido").className = "msg erro";
+        texto($("msg-pedido"), r.dados.erro || "Não consegui criar o pedido.");
         return;
       }
-      $("msg-carrinho").className = "msg ok";
-      texto($("msg-carrinho"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
+      $("msg-pedido").className = "msg ok";
+      texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
         "). Pague no painel da transportadora.");
+      recolherCards();
     }).catch(function () {
       botao.disabled = false;
-      $("msg-carrinho").className = "msg erro";
-      texto($("msg-carrinho"), "Sem conexão. Confira no painel da transportadora antes de tentar de novo.");
+      $("msg-pedido").className = "msg erro";
+      texto($("msg-pedido"), "Sem conexão. Confira no painel da transportadora antes de tentar de novo.");
     });
+  }
+
+  // ---- Recolher os cartões de nota e de dados ----
+  function alternarCard(corpoId, botaoId) {
+    var corpo = $(corpoId);
+    corpo.hidden = !corpo.hidden;
+    $(botaoId).textContent = corpo.hidden ? "Mostrar" : "Recolher";
+  }
+  $("btn-nfe").addEventListener("click", function () { alternarCard("corpo-nfe", "btn-nfe"); });
+  $("btn-dados").addEventListener("click", function () { alternarCard("corpo-dados", "btn-dados"); });
+
+  // Depois de enviar ao carrinho, os dois cartões ficam com o resumo e o resultado aparece na tabela.
+  function recolherCards() {
+    $("corpo-nfe").hidden = true;
+    $("btn-nfe").textContent = "Mostrar";
+    $("corpo-dados").hidden = true;
+    $("btn-dados").textContent = "Mostrar";
+    $("resumo-nfe").textContent = dadosNfe ? "Nota " + (dadosNfe.nota.numero || "-") + " · " + dadosNfe.remetente.name : "";
+    $("resumo-dados").textContent = $("cepOrigem").value + " → " + $("cepDestino").value + " · " + $("peso").value + " kg";
   }
 
   iniciar();
