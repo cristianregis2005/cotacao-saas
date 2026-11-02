@@ -63,7 +63,7 @@ adminRotas.put("/planos/:id", async (c) => {
 });
 
 adminRotas.post("/usuarios/:id/plano", async (c) => {
-  const corpo = (await c.req.json<{ plano_id?: string }>().catch(() => ({} as { plano_id?: string }))) ?? {};
+  const corpo: { plano_id?: string } = (await c.req.json<{ plano_id?: string }>().catch(() => null)) ?? {};
   const planoId = corpo.plano_id;
   if (!planoId) return c.json({ erro: "Informe o plano." }, 400);
 
