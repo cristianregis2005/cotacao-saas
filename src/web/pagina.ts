@@ -122,6 +122,9 @@ export const PAGINA_HTML = `<!doctype html>
         </table>
       </div>
       <ul class="avisos" id="avisos"></ul>
+    </section>
+
+    <section class="cartao" id="retorno" hidden>
       <p class="msg" id="msg-pedido"></p>
     </section>
 
@@ -333,6 +336,7 @@ export const PAGINA_HTML = `<!doctype html>
         return;
       }
       texto($("msg-pedido"), "");
+      $("retorno").hidden = true;
       $("msg-cotar").className = "msg ok";
       texto($("msg-cotar"), "Cotação concluída: " + (r.dados.cotacoes || []).length + " opção(ões) encontrada(s).");
       ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
@@ -403,19 +407,9 @@ export const PAGINA_HTML = `<!doctype html>
   $("arquivoNfe").addEventListener("change", function (e) {
     var arquivo = e.target.files && e.target.files[0];
     if (!arquivo) return; // cancelar a escolha do arquivo não apaga nada
-    // Nova nota: apaga a cotação anterior (tabela, preços, avisos e mensagens) para não confundir.
-    dadosNfe = null;
-    ultimaEntrada = null;
-    resultadoAtual = [];
-    $("resultado").hidden = true;
-    $("avisos").textContent = "";
+    zerarDados(); // nova nota: apaga a cotação anterior e os campos preenchidos antes
+    $("retorno").hidden = true;
     texto($("msg-pedido"), "");
-    texto($("msg-cotar"), "");
-    $("msg-cotar").className = "msg erro";
-    $("nfe-resumo").textContent = "";
-    $("campos-nfe").hidden = true;
-    desenharLinhas();
-    // Abre os cartões, caso tenham sido recolhidos após o envio anterior.
     $("corpo-nfe").hidden = false;
     marcarBotao("btn-nfe", false);
     $("corpo-dados").hidden = false;
@@ -456,6 +450,7 @@ export const PAGINA_HTML = `<!doctype html>
       "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
     if (!confirm(pergunta)) return;
     botao.disabled = true;
+    $("retorno").hidden = false;
     $("msg-pedido").className = "msg";
     texto($("msg-pedido"), "Criando o pedido...");
     var corpo = {
@@ -477,7 +472,8 @@ export const PAGINA_HTML = `<!doctype html>
       $("msg-pedido").className = "msg ok";
       texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
         "). Pague no painel da transportadora.");
-      recolherCards();
+      zerarDados();
+      $("arquivoNfe").value = "";
     }).catch(function () {
       botao.disabled = false;
       $("msg-pedido").className = "msg erro";
@@ -505,14 +501,24 @@ export const PAGINA_HTML = `<!doctype html>
   $("btn-nfe").addEventListener("click", function () { alternarCard("corpo-nfe", "btn-nfe"); });
   $("btn-dados").addEventListener("click", function () { alternarCard("corpo-dados", "btn-dados"); });
 
-  // Depois de enviar ao carrinho, os dois cartões ficam com o resumo e o resultado aparece na tabela.
-  function recolherCards() {
-    $("corpo-nfe").hidden = true;
-    marcarBotao("btn-nfe", true);
-    $("corpo-dados").hidden = true;
-    marcarBotao("btn-dados", true);
-    $("resumo-nfe").textContent = dadosNfe ? "Nota " + (dadosNfe.nota.numero || "-") + " · " + dadosNfe.remetente.name : "";
-    $("resumo-dados").textContent = $("cepOrigem").value + " → " + $("cepDestino").value + " · " + $("peso").value + " kg";
+  // Zera os campos preenchidos e a cotação anterior. O CEP de origem vem do cadastro e é mantido.
+  function zerarDados() {
+    ["cepDestino", "peso", "valor", "comprimento", "largura", "altura"].forEach(function (id) { $(id).value = ""; });
+    $("dicaDestino").className = "dica";
+    $("dicaDestino").textContent = "";
+    dadosNfe = null;
+    ultimaEntrada = null;
+    resultadoAtual = [];
+    $("resultado").hidden = true;
+    $("avisos").textContent = "";
+    $("msg-cotar").className = "msg erro";
+    texto($("msg-cotar"), "");
+    $("nfe-resumo").textContent = "";
+    $("campos-nfe").textContent = "";
+    $("campos-nfe").hidden = true;
+    $("resumo-nfe").textContent = "";
+    $("resumo-dados").textContent = "";
+    desenharLinhas();
   }
 
   iniciar();
