@@ -10,9 +10,10 @@ function paraBase64(bytes: Uint8Array): string {
   return btoa(texto);
 }
 
-function deBase64(texto: string): Uint8Array {
+function deBase64(texto: string) {
   const bruto = atob(texto);
-  const bytes = new Uint8Array(bruto.length);
+  // Array sobre ArrayBuffer comum: é o tipo que a Web Crypto aceita sem reclamar.
+  const bytes = new Uint8Array(new ArrayBuffer(bruto.length));
   for (let i = 0; i < bruto.length; i++) bytes[i] = bruto.charCodeAt(i);
   return bytes;
 }

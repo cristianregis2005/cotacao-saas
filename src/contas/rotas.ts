@@ -1,22 +1,23 @@
-// Tela e rotas "Minha conta": o cliente cadastra os próprios tokens das transportadoras.
+// Tela "Minha conta": o cliente cadastra os próprios tokens das transportadoras.
 // O token nunca volta inteiro para a tela: só os últimos 4 caracteres.
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "./tokens";
 
-export const contaRotas = new Hono<{ Bindings: Env; Variables: { usuarioId: string; usuarioEmail: string } }>();
+export const contaRotas = new Hono<{ Bindings: Env }>();
 
-contaRotas.use("*", async (c, next) => {
+// Devolve o usuário logado ou uma resposta 401 para a rota devolver.
+async function exigirUsuario(c: Context<{ Bindings: Env }>) {
   const usuario = await usuarioDaSessao(c);
-  if (!usuario) return c.json({ erro: "Faça login." }, 401);
-  c.set("usuarioId", usuario.id);
-  c.set("usuarioEmail", usuario.email);
-  await next();
-});
+  return usuario ? { usuario } : { resposta: c.json({ erro: "Faça login." }, 401) };
+}
 
 contaRotas.get("/tokens", async (c) => {
-  const salvos = await listarTokens(c.env.DB, c.get("usuarioId"));
+  const acesso = await exigirUsuario(c);
+  if (!("usuario" in acesso)) return acesso.resposta;
+
+  const salvos = await listarTokens(c.env.DB, acesso.usuario.id);
   const porNome = new Map(salvos.map((s) => [s.transportadora, s]));
   return c.json({
     transportadoras: TRANSPORTADORAS.map((t) => {
@@ -34,6 +35,9 @@ contaRotas.get("/tokens", async (c) => {
 });
 
 contaRotas.put("/tokens/:transportadora", async (c) => {
+  const acesso = await exigirUsuario(c);
+  if (!("usuario" in acesso)) return acesso.resposta;
+
   const transportadora = c.req.param("transportadora");
   if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
 
@@ -45,13 +49,16 @@ contaRotas.put("/tokens/:transportadora", async (c) => {
     return c.json({ erro: "O e-mail de contato não parece válido." }, 400);
   }
 
-  await salvarToken(c.env.DB, c.env.CHAVE_TOKENS, c.get("usuarioId"), transportadora, token, contato || null);
+  await salvarToken(c.env.DB, c.env.CHAVE_TOKENS, acesso.usuario.id, transportadora, token, contato || null);
   return c.json({ ok: true });
 });
 
 contaRotas.delete("/tokens/:transportadora", async (c) => {
+  const acesso = await exigirUsuario(c);
+  if (!("usuario" in acesso)) return acesso.resposta;
+
   const transportadora = c.req.param("transportadora");
   if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
-  await removerToken(c.env.DB, c.get("usuarioId"), transportadora);
+  await removerToken(c.env.DB, acesso.usuario.id, transportadora);
   return c.json({ ok: true });
 });
