@@ -36,6 +36,7 @@ export const PAGINA_HTML = `<!doctype html>
   td.preco, th.preco { text-align: right; }
   tr.melhor td { font-weight: 700; color: var(--ok); }
   .avisos { color: var(--suave); font-size: 0.9rem; margin: 10px 0 0; padding-left: 18px; }
+  button.ordenar { background: none; color: var(--texto); border: 0; padding: 0; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -86,7 +87,7 @@ export const PAGINA_HTML = `<!doctype html>
       <h2>Opções de frete</h2>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th>Prazo</th><th class="preco">Preço</th></tr></thead>
+          <thead id="cabecalho"><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th><button type="button" class="ordenar" data-campo="prazoDias" data-rotulo="Prazo">Prazo</button></th><th class="preco"><button type="button" class="ordenar" data-campo="preco" data-rotulo="Preço">Preço</button></th></tr></thead>
           <tbody id="linhas"></tbody>
         </table>
       </div>
@@ -183,13 +184,32 @@ export const PAGINA_HTML = `<!doctype html>
     return v;
   }
 
-  function mostrarResultados(resultado) {
+  var resultadoAtual = [];
+  var ordem = { campo: "preco", sentido: 1 };
+
+  function atualizarSetas() {
+    var botoes = document.querySelectorAll("button.ordenar");
+    for (var i = 0; i < botoes.length; i++) {
+      var b = botoes[i];
+      var seta = "";
+      if (b.getAttribute("data-campo") === ordem.campo) seta = ordem.sentido === 1 ? " ▲" : " ▼";
+      b.textContent = b.getAttribute("data-rotulo") + seta;
+    }
+  }
+
+  function desenharLinhas() {
     var corpo = $("linhas");
     corpo.textContent = "";
-    var lista = resultado.cotacoes || [];
+    var lista = resultadoAtual.slice().sort(function (a, b) {
+      var va = a[ordem.campo], vb = b[ordem.campo];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * ordem.sentido;
+    });
     lista.forEach(function (c, i) {
       var tr = document.createElement("tr");
-      if (i === 0) tr.className = "melhor";
+      if (ordem.campo === "preco" && ordem.sentido === 1 && i === 0) tr.className = "melhor";
       [c.origem, c.transportadora || "-", c.servico || "-", (c.prazoDias != null ? c.prazoDias + " dia(s)" : "-")].forEach(function (t) {
         var td = document.createElement("td");
         td.textContent = t;
@@ -209,6 +229,13 @@ export const PAGINA_HTML = `<!doctype html>
       vazio.appendChild(td);
       corpo.appendChild(vazio);
     }
+    atualizarSetas();
+  }
+
+  function mostrarResultados(resultado) {
+    resultadoAtual = resultado.cotacoes || [];
+    ordem = { campo: "preco", sentido: 1 };
+    desenharLinhas();
     var avisos = $("avisos");
     avisos.textContent = "";
     (resultado.avisos || []).forEach(function (a) {
@@ -218,6 +245,16 @@ export const PAGINA_HTML = `<!doctype html>
     });
     $("resultado").hidden = false;
   }
+
+  // Clicar no cabeçalho ordena; clicar de novo inverte.
+  $("cabecalho").addEventListener("click", function (e) {
+    var botao = e.target.closest ? e.target.closest("button.ordenar") : null;
+    if (!botao) return;
+    var campo = botao.getAttribute("data-campo");
+    if (ordem.campo === campo) ordem.sentido = -ordem.sentido;
+    else ordem = { campo: campo, sentido: 1 };
+    desenharLinhas();
+  });
 
   // Etapa 3: cotar
   $("form-cotacao").addEventListener("submit", function (e) {
