@@ -402,11 +402,24 @@ export const PAGINA_HTML = `<!doctype html>
 
   $("arquivoNfe").addEventListener("change", function (e) {
     var arquivo = e.target.files && e.target.files[0];
+    if (!arquivo) return; // cancelar a escolha do arquivo não apaga nada
+    // Nova nota: apaga a cotação anterior (tabela, preços, avisos e mensagens) para não confundir.
     dadosNfe = null;
+    ultimaEntrada = null;
+    resultadoAtual = [];
+    $("resultado").hidden = true;
+    $("avisos").textContent = "";
+    texto($("msg-pedido"), "");
+    texto($("msg-cotar"), "");
+    $("msg-cotar").className = "msg erro";
     $("nfe-resumo").textContent = "";
     $("campos-nfe").hidden = true;
     desenharLinhas();
-    if (!arquivo) return;
+    // Abre os cartões, caso tenham sido recolhidos após o envio anterior.
+    $("corpo-nfe").hidden = false;
+    marcarBotao("btn-nfe", false);
+    $("corpo-dados").hidden = false;
+    marcarBotao("btn-dados", false);
     $("msg-carrinho").className = "msg";
     texto($("msg-carrinho"), "Lendo a nota...");
     arquivo.text().then(function (xml) {
