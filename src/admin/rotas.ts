@@ -1,9 +1,11 @@
-// Rotas do administrador: usuários, planos e troca de plano de cada usuário.
+// Rotas do administrador: usuários, planos, troca de plano e tokens de cada cliente.
 // Todas exigem sessão de um usuário com is_admin = 1.
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
+import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "../contas/tokens";
 import { validarPlano } from "./planos";
+import { registrarAuditoria } from "./auditoria";
 
 export const adminRotas = new Hono<{ Bindings: Env }>();
 
@@ -73,5 +75,68 @@ adminRotas.post("/usuarios/:id/plano", async (c) => {
   await c.env.DB.prepare("UPDATE usuarios SET plano_id = ? WHERE id = ?")
     .bind(planoId, c.req.param("id"))
     .run();
+  return c.json({ ok: true });
+});
+
+// ---- Tokens de um cliente (o administrador vê só os 4 últimos caracteres) ----
+
+async function clienteExiste(db: D1Database, id: string): Promise<boolean> {
+  return !!(await db.prepare("SELECT id FROM usuarios WHERE id = ?").bind(id).first());
+}
+
+adminRotas.get("/usuarios/:id/tokens", async (c) => {
+  const id = c.req.param("id");
+  if (!(await clienteExiste(c.env.DB, id))) return c.json({ erro: "Usuário não encontrado." }, 404);
+
+  const salvos = await listarTokens(c.env.DB, id);
+  const porNome = new Map(salvos.map((s) => [s.transportadora, s]));
+  return c.json({
+    transportadoras: TRANSPORTADORAS.map((t) => {
+      const s = porNome.get(t);
+      return {
+        transportadora: t,
+        nome: NOMES[t],
+        configurado: !!s,
+        final_token: s?.final_token ?? null,
+        contato: s?.contato ?? null,
+        atualizado_em: s?.atualizado_em ?? null,
+      };
+    }),
+  });
+});
+
+adminRotas.put("/usuarios/:id/tokens/:transportadora", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+
+  const id = c.req.param("id");
+  const transportadora = c.req.param("transportadora");
+  if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  if (!(await clienteExiste(c.env.DB, id))) return c.json({ erro: "Usuário não encontrado." }, 404);
+
+  const corpo = (await c.req.json<{ token?: unknown; contato?: unknown }>().catch(() => null)) ?? {};
+  const token = typeof corpo.token === "string" ? corpo.token.trim() : "";
+  const contato = typeof corpo.contato === "string" ? corpo.contato.trim() : "";
+  if (token.length < 10) return c.json({ erro: "Cole o token completo da " + NOMES[transportadora] + "." }, 400);
+  if (contato && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contato)) {
+    return c.json({ erro: "O e-mail de contato não parece válido." }, 400);
+  }
+
+  await salvarToken(c.env.DB, c.env.CHAVE_TOKENS, id, transportadora, token, contato || null);
+  await registrarAuditoria(c.env.DB, admin.id, id, "token_salvo", transportadora);
+  return c.json({ ok: true });
+});
+
+adminRotas.delete("/usuarios/:id/tokens/:transportadora", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+
+  const id = c.req.param("id");
+  const transportadora = c.req.param("transportadora");
+  if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  if (!(await clienteExiste(c.env.DB, id))) return c.json({ erro: "Usuário não encontrado." }, 404);
+
+  await removerToken(c.env.DB, id, transportadora);
+  await registrarAuditoria(c.env.DB, admin.id, id, "token_removido", transportadora);
   return c.json({ ok: true });
 });
