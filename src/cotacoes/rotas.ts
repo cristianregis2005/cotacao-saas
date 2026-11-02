@@ -5,6 +5,7 @@ import { usuarioDaSessao } from "../auth/rotas";
 import type { EntradaFrete } from "../carriers/tipos";
 import { cotarSuperFrete, SuperFreteError } from "../carriers/superfrete";
 import { cotarTodas } from "./todas";
+import { registrarCotacao, verificarLimite } from "../planos";
 
 export const cotacaoRotas = new Hono<{ Bindings: Env }>();
 
@@ -47,8 +48,17 @@ cotacaoRotas.post("/todas", async (c) => {
   const entrada = lerEntrada(corpo);
   if (!entrada) return c.json({ erro: mensagemFaltando }, 400);
 
+  const situacao = await verificarLimite(c.env.DB, usuario.id, usuario.plano_id);
+  if (!situacao.permitido) {
+    return c.json(
+      { erro: `Você já usou ${situacao.usadas} de ${situacao.limite} cotações deste mês. Troque de plano para cotar mais.` },
+      403,
+    );
+  }
+
+  await registrarCotacao(c.env.DB, usuario.id);
   const resultado = await cotarTodas(entrada, c.env);
-  return c.json(resultado);
+  return c.json({ ...resultado, uso: { usadas: situacao.usadas + 1, limite: situacao.limite } });
 });
 
 // POST /api/cotacoes/superfrete: só SuperFrete (mantido para testes).

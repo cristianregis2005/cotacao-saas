@@ -15,6 +15,7 @@ interface UsuarioRow {
   email: string;
   nome: string | null;
   is_admin: number;
+  plano_id: string | null;
 }
 
 const emailValido = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -26,7 +27,7 @@ export async function usuarioDaSessao(c: Context<{ Bindings: Env }>): Promise<Us
   const token = getCookie(c, COOKIE);
   if (!token) return null;
   return c.env.DB.prepare(
-    `SELECT u.id, u.email, u.nome, u.is_admin
+    `SELECT u.id, u.email, u.nome, u.is_admin, u.plano_id
        FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id
       WHERE s.id = ? AND s.expira_em > ?`,
   )
