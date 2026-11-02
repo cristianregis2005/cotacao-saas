@@ -26,7 +26,7 @@ export const PAGINA_HTML = `<!doctype html>
   button[disabled] { opacity: 0.6; cursor: wait; }
   button.secundario { background: transparent; color: var(--destaque); border: 1px solid var(--borda); }
   .linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .msg { min-height: 1.2em; margin-top: 8px; font-size: 0.95rem; }
+  .msg { min-height: 1em; margin: 10px 0 0; font-size: 0.8rem; color: var(--suave); }
   .msg.erro { color: var(--erro); }
   .msg.ok { color: var(--ok); }
   .tabela-wrap { overflow-x: auto; }
@@ -311,7 +311,8 @@ export const PAGINA_HTML = `<!doctype html>
         texto($("msg-cotar"), r.dados.erro || "Não consegui cotar. Tente de novo.");
         return;
       }
-      texto($("msg-cotar"), "");
+      $("msg-cotar").className = "msg ok";
+      texto($("msg-cotar"), "Cotação concluída: " + (r.dados.cotacoes || []).length + " opção(ões) encontrada(s).");
       ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
       mostrarUso(r.dados.uso);
       mostrarResultados(r.dados);
@@ -405,6 +406,7 @@ export const PAGINA_HTML = `<!doctype html>
       }
       if (dadosNfe.valorDeclarado != null) $("valor").value = String(dadosNfe.valorDeclarado);
       if (dadosNfe.pesoNota > 0 && !$("peso").value) $("peso").value = String(dadosNfe.pesoNota);
+      $("msg-carrinho").className = "msg ok";
       texto($("msg-carrinho"), "Nota lida. Confira os dados do destinatário e escolha a opção de frete na tabela.");
       desenharLinhas();
     }).catch(function () {

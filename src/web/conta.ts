@@ -24,7 +24,7 @@ export const CONTA_HTML = `<!doctype html>
   button { padding: 10px 14px; font: inherit; font-weight: 600; border: 0; border-radius: 8px; background: var(--destaque); color: #fff; cursor: pointer; margin-top: 6px; }
   button.secundario { background: transparent; color: var(--erro); border: 1px solid var(--borda); }
   button[disabled] { opacity: 0.6; }
-  .msg { min-height: 1.2em; font-size: 0.95rem; margin: 8px 0 0; }
+  .msg { min-height: 1em; font-size: 0.8rem; color: var(--suave); margin: 10px 0 0; }
   .msg.erro { color: var(--erro); }
   .msg.ok { color: var(--ok); }
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }

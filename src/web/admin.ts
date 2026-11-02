@@ -29,7 +29,7 @@ export const ADMIN_HTML = `<!doctype html>
   label input { display: block; width: 100%; margin-top: 4px; }
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .grade { grid-template-columns: 1fr; } }
-  .msg { margin: 8px 0; min-height: 1.2em; }
+  .msg { margin: 10px 0 0; min-height: 1em; font-size: 0.8rem; color: var(--suave); }
   .erro { color: var(--erro); }
   .ok { color: var(--ok); }
   .suave { color: var(--suave); font-size: 0.9rem; }
