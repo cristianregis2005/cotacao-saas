@@ -84,7 +84,7 @@ export const PAGINA_HTML = `<!doctype html>
         <button type="button" class="alternar" id="btn-nfe" aria-label="Recolher" title="Recolher"></button>
       </div>
       <div id="corpo-nfe">
-        <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
+        <p class="suave">Envie a nota fiscal ou preencha os dados do pacote.</p>
         <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
         <p class="suave" id="nfe-resumo"></p>
         <div class="grade" id="campos-nfe" hidden></div>
