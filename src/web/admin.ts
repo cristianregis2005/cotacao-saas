@@ -36,6 +36,14 @@ export const ADMIN_HTML = `<!doctype html>
   .status { font-size: 0.9rem; color: var(--suave); }
   .status.ok { color: var(--ok); }
   .bloco-token { border: 1px solid var(--borda); border-radius: 8px; padding: 12px; margin-top: 12px; }
+  .token-linha { display: flex; gap: 8px; align-items: flex-end; }
+  .token-linha label { flex: 1; min-width: 0; margin: 0; }
+  .token-linha input { height: 42px; }
+  input[readonly] { color: var(--suave); letter-spacing: 2px; cursor: default; }
+  .icone { width: 42px; height: 42px; flex: 0 0 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 0; background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  .icone:hover { border-color: var(--destaque); }
+  .icone.perigo { color: var(--erro); }
+  .icone svg { width: 20px; height: 20px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -278,6 +286,14 @@ export const ADMIN_HTML = `<!doctype html>
     });
   }
 
+  function icone(caminho) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + caminho + '</svg>';
+  }
+  var LAPIS = icone('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>');
+  var CONFIRMAR = icone('<path d="M20 6 9 17l-5-5"/>');
+  var CANCELAR = icone('<path d="M18 6 6 18M6 6l12 12"/>');
+  var LIXEIRA = icone('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>');
+
   function montarCartaoToken(t, usuarioId) {
     var bloco = document.createElement("div");
     bloco.className = "bloco-token";
@@ -288,20 +304,36 @@ export const ADMIN_HTML = `<!doctype html>
     titulo.textContent = t.nome;
     var status = document.createElement("span");
     status.className = "status" + (t.configurado ? " ok" : "");
-    status.textContent = t.configurado ? "Configurado (termina em " + t.final_token + ")" : "Não configurado";
+    status.textContent = t.configurado ? "Criptografado · termina em " + t.final_token : "Não configurado";
     topo.appendChild(titulo);
     topo.appendChild(status);
     bloco.appendChild(topo);
 
+    // Token salvo: campo com asteriscos e ícones. Em edição: salvar à esquerda, cancelar à direita.
+    var editando = !t.configurado;
+    var caminho = "/api/admin/usuarios/" + encodeURIComponent(usuarioId) + "/tokens/" + t.transportadora;
+
     var form = document.createElement("form");
+    var linha = document.createElement("div");
+    linha.className = "token-linha";
+
     var rotuloToken = document.createElement("label");
-    rotuloToken.textContent = "Novo token da " + t.nome;
+    rotuloToken.textContent = "Token da " + t.nome;
     var inputToken = document.createElement("input");
     inputToken.type = "password";
     inputToken.autocomplete = "off";
-    inputToken.required = true;
+    inputToken.placeholder = "Cole o token";
     rotuloToken.appendChild(inputToken);
-    form.appendChild(rotuloToken);
+    linha.appendChild(rotuloToken);
+
+    var botaoTrocar = document.createElement("button");
+    botaoTrocar.className = "icone";
+    var botaoRemover = document.createElement("button");
+    botaoRemover.type = "button";
+    botaoRemover.className = "icone perigo";
+    linha.appendChild(botaoTrocar);
+    linha.appendChild(botaoRemover);
+    form.appendChild(linha);
 
     var rotuloContato = document.createElement("label");
     rotuloContato.textContent = "E-mail de contato (opcional)";
@@ -311,42 +343,75 @@ export const ADMIN_HTML = `<!doctype html>
     rotuloContato.appendChild(inputContato);
     form.appendChild(rotuloContato);
 
-    var botao = document.createElement("button");
-    botao.type = "submit";
-    botao.textContent = t.configurado ? "Trocar token" : "Salvar token";
-    form.appendChild(botao);
-
     var msg = document.createElement("p");
     msg.className = "msg";
     form.appendChild(msg);
 
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      botao.disabled = true;
+    function desenhar() {
+      if (editando) {
+        inputToken.readOnly = false;
+        inputToken.required = true;
+        botaoTrocar.type = "submit";
+        botaoTrocar.innerHTML = CONFIRMAR;
+        botaoTrocar.title = "Salvar token";
+        botaoTrocar.setAttribute("aria-label", "Salvar token");
+        botaoRemover.innerHTML = CANCELAR;
+        botaoRemover.title = "Cancelar";
+        botaoRemover.setAttribute("aria-label", "Cancelar");
+        botaoRemover.hidden = !t.configurado;
+      } else {
+        inputToken.readOnly = true;
+        inputToken.required = false;
+        inputToken.value = "*".repeat(24);
+        botaoTrocar.type = "button";
+        botaoTrocar.innerHTML = LAPIS;
+        botaoTrocar.title = "Trocar token";
+        botaoTrocar.setAttribute("aria-label", "Trocar token");
+        botaoRemover.innerHTML = LIXEIRA;
+        botaoRemover.title = "Remover token";
+        botaoRemover.setAttribute("aria-label", "Remover token");
+        botaoRemover.hidden = false;
+      }
+    }
+
+    botaoTrocar.addEventListener("click", function () {
+      if (editando) return; // em edição, o envio do formulário salva
+      editando = true;
+      inputToken.value = "";
       msg.className = "msg";
       msg.textContent = "";
-      var caminho = "/api/admin/usuarios/" + encodeURIComponent(usuarioId) + "/tokens/" + t.transportadora;
-      api(caminho, { token: inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
-        botao.disabled = false;
-        if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui salvar."; return; }
+      desenhar();
+      inputToken.focus();
+    });
+
+    botaoRemover.addEventListener("click", function () {
+      if (editando) {
+        if (!t.configurado) return;
+        editando = false;
         inputToken.value = "";
+        msg.className = "msg";
+        msg.textContent = "";
+        desenhar();
+        return;
+      }
+      if (!confirm("Remover o token da " + t.nome + " desta conta?")) return;
+      api(caminho, null, "DELETE").then(function () { carregarTokens(); });
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      botaoTrocar.disabled = true;
+      msg.className = "msg";
+      msg.textContent = "";
+      api(caminho, { token: inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
+        botaoTrocar.disabled = false;
+        if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui salvar."; return; }
         carregarTokens();
       });
     });
+
     bloco.appendChild(form);
-
-    if (t.configurado) {
-      var remover = document.createElement("button");
-      remover.type = "button";
-      remover.className = "perigo";
-      remover.textContent = "Remover token";
-      remover.addEventListener("click", function () {
-        if (!confirm("Remover o token da " + t.nome + " desta conta?")) return;
-        api("/api/admin/usuarios/" + encodeURIComponent(usuarioId) + "/tokens/" + t.transportadora, null, "DELETE").then(function () { carregarTokens(); });
-      });
-      bloco.appendChild(remover);
-    }
-
+    desenhar();
     return bloco;
   }
 

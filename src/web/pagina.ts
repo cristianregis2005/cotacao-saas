@@ -37,6 +37,8 @@ export const PAGINA_HTML = `<!doctype html>
   tr.melhor td { font-weight: 700; color: var(--ok); }
   .avisos { color: var(--suave); font-size: 0.9rem; margin: 10px 0 0; padding-left: 18px; }
   button.ordenar { background: none; color: var(--texto); border: 0; padding: 0; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
+  .dica { display: block; margin-top: 4px; font-size: 0.85rem; color: var(--suave); min-height: 1.2em; }
+  .dica.erro { color: var(--erro); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -71,8 +73,8 @@ export const PAGINA_HTML = `<!doctype html>
     <form id="form-cotacao" class="cartao">
       <h2>Dados do envio</h2>
       <div class="grade">
-        <label>CEP de origem <input id="cepOrigem" inputmode="numeric" required></label>
-        <label>CEP de destino <input id="cepDestino" inputmode="numeric" required></label>
+        <label>CEP de origem <input id="cepOrigem" inputmode="numeric" required><small class="dica" id="dicaOrigem"></small></label>
+        <label>CEP de destino <input id="cepDestino" inputmode="numeric" required><small class="dica" id="dicaDestino"></small></label>
         <label>Peso (kg) <input id="peso" inputmode="decimal" required></label>
         <label>Valor declarado (R$) <input id="valor" inputmode="decimal"></label>
         <label>Comprimento (cm) <input id="comprimento" inputmode="decimal" required></label>
@@ -139,7 +141,7 @@ export const PAGINA_HTML = `<!doctype html>
         entrarNaTela(r.dados, r.dados.uso);
         api("/api/conta/dados").then(function (d) {
           var dados = d.ok && d.dados ? d.dados.dados : null;
-          if (dados && dados.origem_cep && !$("cepOrigem").value) $("cepOrigem").value = dados.origem_cep;
+          if (dados && dados.origem_cep && !$("cepOrigem").value) { $("cepOrigem").value = dados.origem_cep; buscarDica("cepOrigem", "dicaOrigem"); }
         });
       }
       else mostrar("entrar");
@@ -294,6 +296,37 @@ export const PAGINA_HTML = `<!doctype html>
       $("msg-cotar").className = "msg erro";
       texto($("msg-cotar"), "Sem conexão. Tente de novo.");
     });
+  });
+
+  // Mostra rua, bairro e cidade do CEP digitado, para o usuário conferir antes de cotar.
+  var cacheCep = {};
+  function mostrarDica(dica, info) {
+    dica.className = info.erro ? "dica erro" : "dica";
+    dica.textContent = info.erro ? "CEP não encontrado." : info.texto;
+  }
+  function buscarDica(campoId, dicaId) {
+    var dica = $(dicaId);
+    var cep = $(campoId).value.replace(/[^0-9]/g, "");
+    if (cep.length !== 8) { dica.className = "dica"; dica.textContent = ""; return; }
+    if (cacheCep[cep]) { mostrarDica(dica, cacheCep[cep]); return; }
+    dica.className = "dica";
+    dica.textContent = "Buscando endereço...";
+    fetch("https://viacep.com.br/ws/" + cep + "/json/")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if ($(campoId).value.replace(/[^0-9]/g, "") !== cep) return; // já mudou o CEP
+        var info = d.erro
+          ? { erro: true }
+          : { texto: [d.logradouro, d.bairro, d.localidade + "/" + d.uf].filter(Boolean).join(", ") };
+        cacheCep[cep] = info;
+        mostrarDica(dica, info);
+      })
+      .catch(function () { dica.className = "dica"; dica.textContent = ""; });
+  }
+  ["cepOrigem", "cepDestino"].forEach(function (id) {
+    var dicaId = id === "cepOrigem" ? "dicaOrigem" : "dicaDestino";
+    $(id).addEventListener("input", function () { buscarDica(id, dicaId); });
+    $(id).addEventListener("blur", function () { buscarDica(id, dicaId); });
   });
 
   iniciar();
