@@ -5,7 +5,11 @@ import { usuarioDaSessao } from "../auth/rotas";
 import type { EntradaFrete } from "../carriers/tipos";
 import { lerCredenciais } from "../contas/tokens";
 import { registrarCotacao, verificarLimite } from "../planos";
-import { cotarTodas } from "./todas";
+import { cotarTodas, type ExtrasCotacao } from "./todas";
+import type { EnderecoEnvia } from "../carriers/envia";
+
+const digitos = (v: unknown): string => (typeof v === "string" ? v.replace(/\D/g, "") : "");
+const texto = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export const cotacaoRotas = new Hono<{ Bindings: Env }>();
 
@@ -75,6 +79,40 @@ cotacaoRotas.post("/todas", async (c) => {
   }
 
   await registrarCotacao(c.env.DB, usuario.id);
-  const resultado = await cotarTodas(entrada, credenciais as Parameters<typeof cotarTodas>[1]);
+  // A Envia exige endereço completo: origem vem do cadastro e destino da nota fiscal.
+  const cadastro = await c.env.DB.prepare(
+    "SELECT nome, empresa, telefone, origem_cep, origem_logradouro, origem_numero, origem_bairro, origem_cidade, origem_uf, origem_complemento FROM usuarios WHERE id = ?",
+  )
+    .bind(usuario.id)
+    .first<Record<string, string | null>>();
+  const extras: ExtrasCotacao = {};
+  if (cadastro && cadastro.origem_logradouro && cadastro.origem_numero && cadastro.origem_bairro && cadastro.origem_cidade && cadastro.origem_uf && cadastro.origem_cep && cadastro.telefone) {
+    extras.enviaOrigem = {
+      name: cadastro.empresa || cadastro.nome || "Remetente",
+      phone: digitos(cadastro.telefone),
+      street: cadastro.origem_logradouro,
+      number: cadastro.origem_numero,
+      district: cadastro.origem_bairro,
+      city: cadastro.origem_cidade,
+      state: cadastro.origem_uf,
+      postalCode: digitos(cadastro.origem_cep),
+    };
+  }
+  const dest = (corpo.destinatario ?? null) as Record<string, unknown> | null;
+  if (dest && typeof dest === "object") {
+    extras.enviaDestino = {
+      name: texto(dest.name, 120) || "Destinatário",
+      phone: digitos(dest.phone),
+      street: texto(dest.street, 120),
+      number: texto(dest.number, 20) || "S/N",
+      district: texto(dest.district, 80) || "NA",
+      city: texto(dest.city, 80),
+      state: texto(dest.state, 2).toUpperCase(),
+      postalCode: digitos(dest.postalCode) || entrada.cepDestino.replace(/\D/g, ""),
+    } as EnderecoEnvia;
+    if (!extras.enviaDestino.street || !extras.enviaDestino.city || !extras.enviaDestino.state) extras.enviaDestino = null;
+  }
+
+  const resultado = await cotarTodas(entrada, credenciais as Parameters<typeof cotarTodas>[1], extras);
   return c.json({ ...resultado, uso: { usadas: situacao.usadas + 1, limite: situacao.limite } });
 });

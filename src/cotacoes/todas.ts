@@ -6,9 +6,10 @@ import type { EntradaFrete } from "../carriers/tipos";
 import { cotarSuperFrete } from "../carriers/superfrete";
 import { cotarFrenet } from "../carriers/frenet";
 import { cotarMelhorEnvio } from "../carriers/melhorenvio";
+import { cotarEnvia, type EnderecoEnvia } from "../carriers/envia";
 
 export interface CotacaoUnificada {
-  origem: "SuperFrete" | "Frenet" | "Melhor Envio";
+  origem: "SuperFrete" | "Frenet" | "Melhor Envio" | "Envia";
   transportadora?: string;
   servico?: string;
   preco: number;
@@ -28,7 +29,17 @@ export type Credenciais = Partial<Record<Transportadora, { token: string; contat
 const semToken = (t: Transportadora) =>
   new Error("Configure seu token da " + NOMES[t] + " em Minha conta.");
 
-export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais): Promise<ResultadoCotacoes> {
+export interface ExtrasCotacao {
+  enviaOrigem?: EnderecoEnvia | null; // cadastro do cliente
+  enviaDestino?: EnderecoEnvia | null; // destinatário da nota fiscal
+}
+
+export async function cotarTodas(
+  entrada: EntradaFrete,
+  credenciais: Credenciais,
+  extras: ExtrasCotacao = {},
+): Promise<ResultadoCotacoes> {
+  const avisosEnvia: string[] = [];
   const tarefas: { nome: string; executar: () => Promise<CotacaoUnificada[]> }[] = [
     {
       nome: "SuperFrete",
@@ -68,6 +79,29 @@ export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais
         return lista.map((c) => ({ origem: "Melhor Envio", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico }));
       },
     },
+    {
+      nome: "Envia",
+      executar: async () => {
+        const cred = credenciais.envia;
+        if (!cred) throw semToken("envia");
+        if (!extras.enviaOrigem) throw new Error("Complete seu endereço de origem em Meus dados.");
+        if (!extras.enviaDestino) throw new Error("Envie a nota fiscal para cotar na Envia. Ela traz o endereço do destinatário.");
+        const r = await cotarEnvia(
+          {
+            origem: extras.enviaOrigem,
+            destino: extras.enviaDestino,
+            valor: entrada.valor,
+            peso: entrada.peso,
+            comprimento: entrada.comprimento,
+            largura: entrada.largura,
+            altura: entrada.altura,
+          },
+          { token: cred.token },
+        );
+        avisosEnvia.push(...r.avisos);
+        return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));
+      },
+    },
   ];
 
   const resultados = await Promise.allSettled(tarefas.map((t) => t.executar()));
@@ -83,5 +117,6 @@ export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais
     }
   });
 
+  avisos.push(...avisosEnvia);
   return { cotacoes: cotacoes.sort((a, b) => a.preco - b.preco), avisos };
 }

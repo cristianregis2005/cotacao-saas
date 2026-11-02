@@ -327,7 +327,8 @@ export const PAGINA_HTML = `<!doctype html>
       comprimento: numero("comprimento"),
       largura: numero("largura"),
       altura: numero("altura"),
-      valorDeclarado: numero("valor") || 0
+      valorDeclarado: numero("valor") || 0,
+      destinatario: dadosNfe ? dadosNfe.destinatario : null
     };
     api("/api/cotacoes/todas", corpo).then(function (r) {
       botao.disabled = false;

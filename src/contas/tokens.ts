@@ -1,13 +1,14 @@
 // Guarda, lê e remove os tokens de cada cliente nas transportadoras.
 import { cifrar, decifrar, importarChave } from "../cripto";
 
-export const TRANSPORTADORAS = ["superfrete", "frenet", "melhorenvio"] as const;
+export const TRANSPORTADORAS = ["superfrete", "frenet", "melhorenvio", "envia"] as const;
 export type Transportadora = (typeof TRANSPORTADORAS)[number];
 
 export const NOMES: Record<Transportadora, string> = {
   superfrete: "SuperFrete",
   frenet: "Frenet",
   melhorenvio: "Melhor Envio",
+  envia: "Envia",
 };
 
 export function ehTransportadora(valor: string): valor is Transportadora {
