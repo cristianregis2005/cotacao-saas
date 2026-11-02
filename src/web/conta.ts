@@ -47,6 +47,7 @@ export const CONTA_HTML = `<!doctype html>
   <p class="status" id="quem"></p>
   <div id="dados"></div>
   <div id="cartoes"></div>
+  <div id="excluir"></div>
 </main>
 <script>
 (function () {
@@ -310,8 +311,45 @@ export const CONTA_HTML = `<!doctype html>
     });
   }
 
+  function montarExcluir() {
+    var cartao = document.createElement("section");
+    cartao.className = "cartao";
+    var titulo = document.createElement("h2");
+    titulo.textContent = "Excluir minha conta";
+    var descricao = document.createElement("p");
+    descricao.className = "suave";
+    descricao.textContent = "Seus dados pessoais, tokens, cotações e pedidos serão apagados e não será possível desfazer. Seu e-mail e CPF/CNPJ continuam registrados para evitar novas franquias gratuitas.";
+    var botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "secundario";
+    botao.textContent = "Excluir minha conta";
+    var msg = document.createElement("p");
+    msg.className = "msg";
+    botao.addEventListener("click", function () {
+      var resposta = prompt("Para confirmar, digite EXCLUIR:");
+      if (resposta !== "EXCLUIR") {
+        msg.className = "msg erro";
+        msg.textContent = resposta === null ? "" : "Confirmação incorreta. Nada foi excluído.";
+        return;
+      }
+      botao.disabled = true;
+      api("/api/conta", { confirmar: "EXCLUIR" }, "DELETE").then(function (r) {
+        if (r.ok) { location.href = "/"; return; }
+        botao.disabled = false;
+        msg.className = "msg erro";
+        msg.textContent = r.dados.erro || "Não consegui excluir a conta.";
+      });
+    });
+    cartao.appendChild(titulo);
+    cartao.appendChild(descricao);
+    cartao.appendChild(botao);
+    cartao.appendChild(msg);
+    $("excluir").appendChild(cartao);
+  }
+
   carregar();
   carregarDados();
+  montarExcluir();
 })();
 </script>
 </body>

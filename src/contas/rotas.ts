@@ -5,6 +5,8 @@ import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "./tokens";
 import { validarDados } from "./dados";
+import { garantirFranquiaUnica } from "../auth/identidade";
+import { deleteCookie } from "hono/cookie";
 
 export const contaRotas = new Hono<{ Bindings: Env }>();
 
@@ -89,5 +91,40 @@ contaRotas.put("/dados", async (c) => {
       d.origem_numero, d.origem_complemento, d.origem_bairro, d.origem_cidade, d.origem_uf, usuario.id,
     )
     .run();
+  await garantirFranquiaUnica(c.env.DB, c.env.SEGREDO_LOGIN, usuario.id, "documento", d.documento);
+  return c.json({ ok: true });
+});
+
+// Exclui a conta: apaga dados pessoais, tokens, sessões, cotações e pedidos.
+// Guarda só o HMAC do e-mail e do CPF/CNPJ, para impedir nova franquia gratuita.
+// Corpo: { confirmar: "EXCLUIR" }
+contaRotas.delete("/", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+  if (usuario.is_admin) return c.json({ erro: "Administradores não podem excluir a conta por esta tela." }, 400);
+
+  const corpo = await c.req.json<Record<string, unknown>>().catch(() => null);
+  if (!corpo || corpo.confirmar !== "EXCLUIR") {
+    return c.json({ erro: "Para confirmar, digite EXCLUIR." }, 400);
+  }
+
+  const id = usuario.id;
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM tokens_transportadoras WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM sessoes WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM codigos_login WHERE email = ?").bind(usuario.email),
+    c.env.DB.prepare("DELETE FROM cotacoes_realizadas WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM pedidos_carrinho WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM assinaturas WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("UPDATE identidades SET usuario_id = NULL WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare(
+      `UPDATE usuarios SET email = ?, nome = NULL, empresa = NULL, documento = NULL, telefone = NULL,
+         origem_cep = NULL, origem_logradouro = NULL, origem_numero = NULL, origem_complemento = NULL,
+         origem_bairro = NULL, origem_cidade = NULL, origem_uf = NULL, plano_id = 'sem_franquia',
+         excluido_em = datetime('now') WHERE id = ?`,
+    ).bind(`excluida-${id}@removido.invalid`, id),
+  ]);
+
+  deleteCookie(c, "sessao", { path: "/" });
   return c.json({ ok: true });
 });

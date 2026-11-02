@@ -4,6 +4,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../env";
 import { gerarCodigo, gerarToken, hashCodigo, hashToken, iguais } from "./codigos";
 import { verificarLimite } from "../planos";
+import { garantirFranquiaUnica } from "./identidade";
 
 const COOKIE = "sessao";
 const VALIDADE_CODIGO_MIN = 10;
@@ -116,6 +117,7 @@ authRotas.post("/verificar", async (c) => {
     .bind(email)
     .first<UsuarioRow>();
   if (!usuario) return c.json({ erro: "Não consegui abrir sua conta." }, 500);
+  await garantirFranquiaUnica(c.env.DB, c.env.SEGREDO_LOGIN, usuario.id, "email", usuario.email);
 
   // O cookie leva o token; o banco guarda só o hash dele.
   const token = gerarToken();

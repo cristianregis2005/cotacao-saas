@@ -71,6 +71,8 @@ const TERMOS_CORPO = `
 
 <h2>6. Planos e limites</h2>
 <p>Cada plano tem um limite mensal de cotações. Os planos, seus preços e as condições de cobrança serão informados antes de qualquer cobrança. Enquanto isso, o uso do serviço segue as condições vigentes na sua conta.</p>
+<p>Cada e-mail e cada CPF/CNPJ tem direito a uma única franquia gratuita de cotações, mesmo depois de a conta ser excluída.</p>
+<p>Você pode excluir sua conta a qualquer momento, em Minha conta.</p>
 
 <h2>7. Uso adequado</h2>
 <p>Você não deve usar o serviço para fins ilegais, para burlar limites, para tentar acessar contas de terceiros ou para prejudicar o funcionamento do sistema ou das transportadoras.</p>
@@ -122,7 +124,7 @@ const PRIVACIDADE_CORPO = `
 <p>Não vendemos dados pessoais.</p>
 
 <h2>5. Por quanto tempo guardamos</h2>
-<p>Mantemos os dados enquanto a conta estiver ativa. Depois do encerramento, excluímos ou anonimizamos os dados, exceto os que precisarmos guardar por obrigação legal ou para defesa em processos.</p>
+<p>Mantemos os dados enquanto a conta estiver ativa. Quando você exclui a conta, apagamos seus dados pessoais, tokens, cotações e pedidos. Guardamos apenas um código criptografado (HMAC) do seu e-mail e do seu CPF/CNPJ, que não permite ler esses dados, para impedir o uso repetido da franquia gratuita. Essa base é o interesse legítimo de prevenir fraudes (art. 7º, IX, da LGPD). Dados que precisarmos manter por obrigação legal ou para defesa em processos também são preservados pelo tempo exigido.</p>
 
 <h2>6. Segurança</h2>
 <p>Usamos conexão criptografada (HTTPS). Os tokens das transportadoras são cifrados com AES-GCM. Os códigos de acesso são guardados só como hash e têm validade curta. O acesso administrativo é restrito e registrado.</p>

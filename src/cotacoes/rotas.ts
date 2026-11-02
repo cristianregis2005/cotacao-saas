@@ -61,6 +61,12 @@ cotacaoRotas.post("/todas", async (c) => {
   }
 
   const situacao = await verificarLimite(c.env.DB, usuario.id, usuario.plano_id);
+  if (usuario.plano_id === "sem_franquia") {
+    return c.json(
+      { erro: "Seu acesso gratuito já foi usado por este e-mail ou CPF/CNPJ. Escolha um plano para continuar cotando." },
+      403,
+    );
+  }
   if (!situacao.permitido) {
     return c.json(
       { erro: `Você já usou ${situacao.usadas} de ${situacao.limite} cotações deste mês. Troque de plano para cotar mais.` },
