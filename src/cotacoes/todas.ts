@@ -1,6 +1,7 @@
-// Consulta todas as transportadoras configuradas ao mesmo tempo.
-// Se uma falhar, as outras continuam e a falha vira um aviso.
-import type { Env } from "../env";
+// Consulta as transportadoras com os tokens do próprio cliente.
+// Se uma falhar ou não tiver token configurado, as outras continuam e a falha vira um aviso.
+import type { Transportadora } from "../contas/tokens";
+import { NOMES } from "../contas/tokens";
 import type { EntradaFrete } from "../carriers/tipos";
 import { cotarSuperFrete } from "../carriers/superfrete";
 import { cotarFrenet } from "../carriers/frenet";
@@ -19,14 +20,18 @@ export interface ResultadoCotacoes {
   avisos: string[];
 }
 
-const naoConfigurada = (nome: string) => new Error(`${nome} não está configurada neste ambiente.`);
+export type Credenciais = Partial<Record<Transportadora, { token: string; contato: string }>>;
 
-export async function cotarTodas(entrada: EntradaFrete, env: Env): Promise<ResultadoCotacoes> {
+const semToken = (t: Transportadora) =>
+  new Error("Configure seu token da " + NOMES[t] + " em Minha conta.");
+
+export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais): Promise<ResultadoCotacoes> {
   const tarefas: { nome: string; executar: () => Promise<CotacaoUnificada[]> }[] = [
     {
       nome: "SuperFrete",
       executar: async () => {
-        if (!env.SUPERFRETE_TOKEN) throw naoConfigurada("SuperFrete");
+        const cred = credenciais.superfrete;
+        if (!cred) throw semToken("superfrete");
         const lista = await cotarSuperFrete(
           {
             cepOrigem: entrada.cepOrigem,
@@ -37,10 +42,7 @@ export async function cotarTodas(entrada: EntradaFrete, env: Env): Promise<Resul
             altura: entrada.altura,
             valorDeclarado: entrada.valor,
           },
-          {
-            token: env.SUPERFRETE_TOKEN,
-            userAgent: env.SUPERFRETE_USER_AGENT ?? "cotacao-fretes/1.0 (contato@exemplo.com)",
-          },
+          { token: cred.token, userAgent: "Comparador de Fretes (" + cred.contato + ")" },
         );
         return lista.map((c) => ({ origem: "SuperFrete", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
       },
@@ -48,19 +50,18 @@ export async function cotarTodas(entrada: EntradaFrete, env: Env): Promise<Resul
     {
       nome: "Frenet",
       executar: async () => {
-        if (!env.FRENET_TOKEN) throw naoConfigurada("Frenet");
-        const lista = await cotarFrenet(entrada, { token: env.FRENET_TOKEN });
+        const cred = credenciais.frenet;
+        if (!cred) throw semToken("frenet");
+        const lista = await cotarFrenet(entrada, { token: cred.token });
         return lista.map((c) => ({ origem: "Frenet", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
       },
     },
     {
       nome: "Melhor Envio",
       executar: async () => {
-        if (!env.ME_TOKEN) throw naoConfigurada("Melhor Envio");
-        const lista = await cotarMelhorEnvio(entrada, {
-          token: env.ME_TOKEN,
-          contato: env.ME_CONTACT ?? "contato@exemplo.com",
-        });
+        const cred = credenciais.melhorenvio;
+        if (!cred) throw semToken("melhorenvio");
+        const lista = await cotarMelhorEnvio(entrada, { token: cred.token, contato: cred.contato });
         return lista.map((c) => ({ origem: "Melhor Envio", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
       },
     },
@@ -75,7 +76,7 @@ export async function cotarTodas(entrada: EntradaFrete, env: Env): Promise<Resul
       cotacoes.push(...r.value);
     } else {
       const motivo = r.reason instanceof Error ? r.reason.message : String(r.reason);
-      avisos.push(`${tarefas[i].nome}: ${motivo}`);
+      avisos.push(tarefas[i].nome + ": " + motivo);
     }
   });
 

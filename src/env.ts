@@ -1,4 +1,4 @@
-// Variáveis do ambiente do Worker: banco, e-mail e segredos.
+// Variáveis do ambiente do Worker.
 // Produção: segredos com "npx wrangler secret put NOME". Local: arquivo .dev.vars.
 
 export interface MensagemEmail {
@@ -19,10 +19,6 @@ export interface Env {
   EMAIL: EnviadorEmail;
   EMAIL_REMETENTE: string;   // endereço do domínio configurado no Email Service (wrangler.jsonc)
   SEGREDO_LOGIN: string;     // protege os códigos de login (segredo)
+  CHAVE_TOKENS: string;      // chave que criptografa os tokens dos clientes: 32 bytes em base64 (segredo)
   EMAIL_SIMULADO?: string;   // "1" só em desenvolvimento: mostra o código no terminal, sem e-mail
-  SUPERFRETE_TOKEN?: string;
-  SUPERFRETE_USER_AGENT?: string;
-  FRENET_TOKEN?: string;
-  ME_TOKEN?: string;         // token do Melhor Envio (segredo)
-  ME_CONTACT?: string;       // e-mail de contato, usado no User-Agent exigido pelo Melhor Envio
 }

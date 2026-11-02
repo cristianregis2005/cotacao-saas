@@ -41,10 +41,11 @@ describe("Melhor Envio", () => {
 });
 
 describe("cotarTodas", () => {
-  it("sem tokens, devolve avisos e nenhuma cotação, sem quebrar", async () => {
-    const r = await cotarTodas(entrada, {} as never);
+  it("sem nenhum token do cliente, devolve um aviso por transportadora", async () => {
+    const r = await cotarTodas(entrada, {});
     expect(r.cotacoes).toEqual([]);
     expect(r.avisos).toHaveLength(3);
+    expect(r.avisos[0]).toContain("Minha conta");
   });
 
   it("uma transportadora falhando não derruba as outras", async () => {
@@ -54,7 +55,11 @@ describe("cotarTodas", () => {
       }
       return new Response("erro", { status: 500 });
     });
-    const r = await cotarTodas(entrada, { FRENET_TOKEN: "t", ME_TOKEN: "t", SUPERFRETE_TOKEN: "t" } as never);
+    const r = await cotarTodas(entrada, {
+      frenet: { token: "t", contato: "a@b.com" },
+      melhorenvio: { token: "t", contato: "a@b.com" },
+      superfrete: { token: "t", contato: "a@b.com" },
+    });
     expect(r.cotacoes.map((c) => c.origem)).toEqual(["Frenet"]);
     expect(r.avisos.length).toBe(2);
   });

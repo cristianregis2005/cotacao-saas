@@ -1,9 +1,6 @@
 # Copie para .dev.vars (ignorado pelo git) e troque os valores.
 SEGREDO_LOGIN=troque-por-um-texto-longo-e-aleatorio
+# Chave que criptografa os tokens dos clientes. Gere com: openssl rand -base64 32
+CHAVE_TOKENS=troque-pela-saida-do-comando-openssl
 # Em desenvolvimento, mostra o código de login no terminal em vez de enviar e-mail.
 EMAIL_SIMULADO=1
-SUPERFRETE_TOKEN=cole_aqui
-SUPERFRETE_USER_AGENT="Comparador de Fretes (seu@email.com)"
-FRENET_TOKEN=cole_aqui
-ME_TOKEN=cole_aqui
-ME_CONTACT="Seu Nome (seu@email.com)"

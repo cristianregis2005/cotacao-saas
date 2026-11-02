@@ -6,6 +6,7 @@ const dbVazio = {
   prepare: () => ({
     bind: () => ({
       first: async () => null,
+      all: async () => ({ results: [] }),
       run: async () => ({}),
     }),
   }),
@@ -20,10 +21,10 @@ const corpoValido = JSON.stringify({
   altura: 99,
 });
 
-describe("POST /api/cotacoes/superfrete", () => {
+describe("POST /api/cotacoes/todas", () => {
   it("sem login responde 401 e não consulta a transportadora", async () => {
     const resp = await app.request(
-      "/api/cotacoes/superfrete",
+      "/api/cotacoes/todas",
       { method: "POST", headers: { "Content-Type": "application/json" }, body: corpoValido },
       { DB: dbVazio } as never,
     );
@@ -32,7 +33,7 @@ describe("POST /api/cotacoes/superfrete", () => {
 
   it("com sessão inválida também responde 401", async () => {
     const resp = await app.request(
-      "/api/cotacoes/superfrete",
+      "/api/cotacoes/todas",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Cookie: "sessao=token-invalido" },

@@ -65,7 +65,7 @@ export const PAGINA_HTML = `<!doctype html>
   <section id="cotar" hidden>
     <div class="cartao linha">
       <span><span id="quem"></span><br><small id="uso" style="color:var(--suave)"></small></span>
-      <button class="secundario" id="btn-sair" type="button">Sair</button>
+      <span><a href="/conta">Minha conta</a> &nbsp; <button class="secundario" id="btn-sair" type="button">Sair</button></span>
     </div>
 
     <form id="form-cotacao" class="cartao">
