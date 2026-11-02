@@ -15,7 +15,7 @@
     { "name": "EMAIL" }
   ],
   "vars": {
-    // Troque pelo endereço do seu domínio depois de configurá-lo no Email Service.
-    "EMAIL_REMETENTE": "contato@cliquefrete.com.br"
+    // Remetente no subdomínio verificado no Email Service (mail.cliquefrete.com.br).
+    "EMAIL_REMETENTE": "nao-responda@mail.cliquefrete.com.br"
   }
 }
