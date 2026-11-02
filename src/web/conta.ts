@@ -10,6 +10,7 @@ export const CONTA_HTML = `<!doctype html>
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) { --fundo: #0f1218; --cartao: #171c26; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #2a3140; --destaque: #5b8cff; --ok: #4ade80; --erro: #f87171; }
   }
+  * { box-sizing: border-box; }
   body { margin: 0; background: var(--fundo); color: var(--texto); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.4; }
   main { max-width: 640px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 1.4rem; }
