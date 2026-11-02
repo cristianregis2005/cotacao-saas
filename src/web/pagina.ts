@@ -127,6 +127,7 @@ export const PAGINA_HTML = `<!doctype html>
 
     <section class="cartao" id="retorno" hidden>
       <p class="msg" id="msg-pedido"></p>
+      <button type="button" class="secundario" id="btn-liberar" hidden>Liberar esta nota para novo envio</button>
     </section>
 
   </section>
@@ -137,8 +138,8 @@ export const PAGINA_HTML = `<!doctype html>
 (function () {
   function $(id) { return document.getElementById(id); }
 
-  function api(caminho, corpo) {
-    var opcoes = { method: corpo ? "POST" : "GET", headers: { "Content-Type": "application/json" }, credentials: "same-origin" };
+  function api(caminho, corpo, metodo) {
+    var opcoes = { method: metodo || (corpo ? "POST" : "GET"), headers: { "Content-Type": "application/json" }, credentials: "same-origin" };
     if (corpo) opcoes.body = JSON.stringify(corpo);
     return fetch(caminho, opcoes).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (dados) {
@@ -391,6 +392,7 @@ export const PAGINA_HTML = `<!doctype html>
   // ---- Envio ao carrinho ----
   var dadosNfe = null;
   var ultimaEntrada = null;
+  var pendenteLiberar = null; // envio bloqueado por nota já enviada: { origem, chave }
   var CAMPOS_DESTINATARIO = [
     ["name", "Nome"], ["document", "CPF ou CNPJ"], ["phone", "Telefone"], ["postalCode", "CEP"],
     ["street", "Rua"], ["number", "Número"], ["complement", "Complemento"], ["district", "Bairro"],
@@ -461,6 +463,8 @@ export const PAGINA_HTML = `<!doctype html>
     if (!confirm(pergunta)) return;
     botao.disabled = true;
     $("retorno").hidden = false;
+    $("btn-liberar").hidden = true;
+    pendenteLiberar = null;
     $("msg-pedido").className = "msg";
     texto($("msg-pedido"), "Criando o pedido...");
     var corpo = {
@@ -477,6 +481,10 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-pedido").className = "msg erro";
         texto($("msg-pedido"), r.dados.erro || "Não consegui criar o pedido.");
+        if (r.status === 409) {
+          pendenteLiberar = { origem: c.origem, chave: dadosNfe.chave };
+          $("btn-liberar").hidden = false;
+        }
         return;
       }
       $("msg-pedido").className = "msg ok";
@@ -510,6 +518,30 @@ export const PAGINA_HTML = `<!doctype html>
   }
   $("btn-nfe").addEventListener("click", function () { alternarCard("corpo-nfe", "btn-nfe"); });
   $("btn-dados").addEventListener("click", function () { alternarCard("corpo-dados", "btn-dados"); });
+
+  $("btn-liberar").addEventListener("click", function () {
+    if (!pendenteLiberar) return;
+    var botao = $("btn-liberar");
+    var origem = pendenteLiberar.origem;
+    if (!confirm("Confirme que o pedido já foi cancelado ou apagado no painel da " + origem + ". Isso libera a nota para um novo envio. Continuar?")) return;
+    botao.disabled = true;
+    api("/api/carrinho/pedidos", pendenteLiberar, "DELETE").then(function (r) {
+      botao.disabled = false;
+      if (!r.ok) {
+        $("msg-pedido").className = "msg erro";
+        texto($("msg-pedido"), r.dados.erro || "Não consegui liberar a nota.");
+        return;
+      }
+      pendenteLiberar = null;
+      botao.hidden = true;
+      $("msg-pedido").className = "msg ok";
+      texto($("msg-pedido"), "Nota liberada. Você já pode enviar de novo.");
+    }).catch(function () {
+      botao.disabled = false;
+      $("msg-pedido").className = "msg erro";
+      texto($("msg-pedido"), "Sem conexão. Tente liberar de novo.");
+    });
+  });
 
   // Zera os campos preenchidos e a cotação anterior. O CEP de origem vem do cadastro e é mantido.
   function zerarDados() {

@@ -122,6 +122,26 @@ function lerServico(v: unknown): ServicoEscolhido | null {
   };
 }
 
+// DELETE /api/carrinho/pedidos
+// Corpo: { origem, chave }. Remove o registro local do envio para liberar a nota.
+// Use só depois de cancelar ou apagar o pedido no painel da transportadora.
+carrinhoRotas.delete("/pedidos", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
+
+  const corpo = objeto(await c.req.json().catch(() => null));
+  const transportadora = typeof corpo.origem === "string" ? ORIGENS[corpo.origem] : undefined;
+  const chave = texto(corpo.chave, 44);
+  if (!transportadora || !/^\d{44}$/.test(chave)) return c.json({ erro: "Envio inválido." }, 400);
+
+  const removido = await c.env.DB.prepare(
+    "DELETE FROM pedidos_carrinho WHERE usuario_id = ? AND transportadora = ? AND chave_nfe = ?",
+  )
+    .bind(usuario.id, transportadora, chave)
+    .run();
+  return c.json({ ok: true, liberados: removido.meta.changes });
+});
+
 // POST /api/carrinho/ler-nfe
 // Corpo: { xml }. Devolve os dados da nota para o cliente conferir antes de enviar.
 carrinhoRotas.post("/ler-nfe", async (c) => {
