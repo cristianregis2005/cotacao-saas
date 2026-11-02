@@ -135,7 +135,13 @@ export const PAGINA_HTML = `<!doctype html>
 
   function iniciar() {
     api("/api/auth/eu").then(function (r) {
-      if (r.ok) entrarNaTela(r.dados, r.dados.uso);
+      if (r.ok) {
+        entrarNaTela(r.dados, r.dados.uso);
+        api("/api/conta/dados").then(function (d) {
+          var dados = d.ok && d.dados ? d.dados.dados : null;
+          if (dados && dados.origem_cep && !$("cepOrigem").value) $("cepOrigem").value = dados.origem_cep;
+        });
+      }
       else mostrar("entrar");
     }).catch(function () { mostrar("entrar"); });
   }

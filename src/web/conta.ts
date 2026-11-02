@@ -27,6 +27,8 @@ export const CONTA_HTML = `<!doctype html>
   .msg { min-height: 1.2em; font-size: 0.95rem; margin: 8px 0 0; }
   .msg.erro { color: var(--erro); }
   .msg.ok { color: var(--ok); }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 520px) { .grade { grid-template-columns: 1fr; } }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -36,6 +38,7 @@ export const CONTA_HTML = `<!doctype html>
   <h1>Minha conta</h1>
   <p class="msg erro" id="msg-acesso" hidden></p>
   <p class="status" id="quem"></p>
+  <div id="dados"></div>
   <div id="cartoes"></div>
 </main>
 <script>
@@ -137,7 +140,81 @@ export const CONTA_HTML = `<!doctype html>
     });
   }
 
+  var CAMPOS = [
+    ["nome", "Nome completo", "text"],
+    ["empresa", "Empresa (opcional)", "text"],
+    ["documento", "CPF ou CNPJ", "text"],
+    ["telefone", "Telefone com DDD", "tel"],
+    ["origem_cep", "CEP de origem", "text"],
+    ["origem_logradouro", "Rua / Avenida", "text"],
+    ["origem_numero", "Número", "text"],
+    ["origem_complemento", "Complemento (opcional)", "text"],
+    ["origem_bairro", "Bairro", "text"],
+    ["origem_cidade", "Cidade", "text"],
+    ["origem_uf", "UF", "text"]
+  ];
+
+  function montarDados(dados) {
+    var cartao = document.createElement("section");
+    cartao.className = "cartao";
+    var titulo = document.createElement("h2");
+    titulo.textContent = "Meus dados";
+    cartao.appendChild(titulo);
+
+    var form = document.createElement("form");
+    var grade = document.createElement("div");
+    grade.className = "grade";
+    var inputs = {};
+    CAMPOS.forEach(function (c) {
+      var rotulo = document.createElement("label");
+      rotulo.textContent = c[1];
+      var input = document.createElement("input");
+      input.type = c[2];
+      input.value = dados[c[0]] || "";
+      rotulo.appendChild(input);
+      grade.appendChild(rotulo);
+      inputs[c[0]] = input;
+    });
+    form.appendChild(grade);
+
+    var botao = document.createElement("button");
+    botao.type = "submit";
+    botao.textContent = "Salvar dados";
+    form.appendChild(botao);
+
+    var msg = document.createElement("p");
+    msg.className = "msg";
+    form.appendChild(msg);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var corpo = {};
+      CAMPOS.forEach(function (c) { corpo[c[0]] = inputs[c[0]].value.trim(); });
+      botao.disabled = true;
+      msg.className = "msg";
+      msg.textContent = "";
+      api("/api/conta/dados", corpo, "PUT").then(function (r) {
+        botao.disabled = false;
+        msg.className = "msg " + (r.ok ? "ok" : "erro");
+        msg.textContent = r.ok ? "Dados salvos." : (r.dados.erro || "Não consegui salvar.");
+      });
+    });
+
+    cartao.appendChild(form);
+    return cartao;
+  }
+
+  function carregarDados() {
+    api("/api/conta/dados").then(function (r) {
+      if (!r.ok) return;
+      var area = $("dados");
+      area.textContent = "";
+      area.appendChild(montarDados(r.dados.dados || {}));
+    });
+  }
+
   carregar();
+  carregarDados();
 })();
 </script>
 </body>

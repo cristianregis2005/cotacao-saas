@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "./tokens";
+import { validarDados } from "./dados";
 
 export const contaRotas = new Hono<{ Bindings: Env }>();
 
@@ -54,5 +55,39 @@ contaRotas.delete("/tokens/:transportadora", async (c) => {
   const transportadora = c.req.param("transportadora");
   if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
   await removerToken(c.env.DB, usuario.id, transportadora);
+  return c.json({ ok: true });
+});
+
+// ---- Dados cadastrais do cliente ----
+
+contaRotas.get("/dados", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+
+  const linha = await c.env.DB.prepare(
+    "SELECT nome, empresa, documento, telefone, origem_cep, origem_logradouro, origem_numero, origem_complemento, origem_bairro, origem_cidade, origem_uf FROM usuarios WHERE id = ?",
+  )
+    .bind(usuario.id)
+    .first();
+  return c.json({ dados: linha ?? {} });
+});
+
+contaRotas.put("/dados", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+
+  const corpo = (await c.req.json<Record<string, unknown>>().catch(() => null)) ?? {};
+  const r = validarDados(corpo);
+  if ("erro" in r) return c.json({ erro: r.erro }, 400);
+  const d = r.valor;
+
+  await c.env.DB.prepare(
+    "UPDATE usuarios SET nome = ?, empresa = ?, documento = ?, telefone = ?, origem_cep = ?, origem_logradouro = ?, origem_numero = ?, origem_complemento = ?, origem_bairro = ?, origem_cidade = ?, origem_uf = ? WHERE id = ?",
+  )
+    .bind(
+      d.nome, d.empresa, d.documento, d.telefone, d.origem_cep, d.origem_logradouro,
+      d.origem_numero, d.origem_complemento, d.origem_bairro, d.origem_cidade, d.origem_uf, usuario.id,
+    )
+    .run();
   return c.json({ ok: true });
 });
