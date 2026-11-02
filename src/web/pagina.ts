@@ -42,7 +42,10 @@ export const PAGINA_HTML = `<!doctype html>
   .cabecalho-recolhivel { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .cabecalho-recolhivel h2 { margin: 0; }
   .cabecalho-recolhivel .suave { font-size: 0.85rem; }
-  .cabecalho-recolhivel button { padding: 6px 10px; font-size: 0.85rem; }
+  .alternar { width: 32px; height: 32px; flex: 0 0 32px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  .alternar:hover { border-color: var(--destaque); color: var(--destaque); }
+  .alternar svg { width: 16px; height: 16px; transition: transform 0.2s; }
+  .alternar.fechado svg { transform: rotate(-90deg); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -78,7 +81,7 @@ export const PAGINA_HTML = `<!doctype html>
       <div class="cabecalho-recolhivel">
         <h2>Enviar o XML da nota</h2>
         <span class="suave" id="resumo-nfe"></span>
-        <button type="button" class="secundario" id="btn-nfe">Recolher</button>
+        <button type="button" class="alternar" id="btn-nfe" aria-label="Recolher" title="Recolher"></button>
       </div>
       <div id="corpo-nfe">
         <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
@@ -93,7 +96,7 @@ export const PAGINA_HTML = `<!doctype html>
       <div class="cabecalho-recolhivel">
         <h2>Dados do envio</h2>
         <span class="suave" id="resumo-dados"></span>
-        <button type="button" class="secundario" id="btn-dados">Recolher</button>
+        <button type="button" class="alternar" id="btn-dados" aria-label="Recolher" title="Recolher"></button>
       </div>
       <div id="corpo-dados">
       <div class="grade">
@@ -469,10 +472,21 @@ export const PAGINA_HTML = `<!doctype html>
   }
 
   // ---- Recolher os cartões de nota e de dados ----
+  var SETA_BAIXO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  ["btn-nfe", "btn-dados"].forEach(function (id) { $(id).innerHTML = SETA_BAIXO; });
+
+  // Seta gira quando o cartão está fechado; o texto fica só para leitores de tela e dica ao passar o mouse.
+  function marcarBotao(botaoId, fechado) {
+    var b = $(botaoId);
+    var rotulo = fechado ? "Mostrar" : "Recolher";
+    b.classList.toggle("fechado", fechado);
+    b.setAttribute("aria-label", rotulo);
+    b.title = rotulo;
+  }
   function alternarCard(corpoId, botaoId) {
     var corpo = $(corpoId);
     corpo.hidden = !corpo.hidden;
-    $(botaoId).textContent = corpo.hidden ? "Mostrar" : "Recolher";
+    marcarBotao(botaoId, corpo.hidden);
   }
   $("btn-nfe").addEventListener("click", function () { alternarCard("corpo-nfe", "btn-nfe"); });
   $("btn-dados").addEventListener("click", function () { alternarCard("corpo-dados", "btn-dados"); });
@@ -480,9 +494,9 @@ export const PAGINA_HTML = `<!doctype html>
   // Depois de enviar ao carrinho, os dois cartões ficam com o resumo e o resultado aparece na tabela.
   function recolherCards() {
     $("corpo-nfe").hidden = true;
-    $("btn-nfe").textContent = "Mostrar";
+    marcarBotao("btn-nfe", true);
     $("corpo-dados").hidden = true;
-    $("btn-dados").textContent = "Mostrar";
+    marcarBotao("btn-dados", true);
     $("resumo-nfe").textContent = dadosNfe ? "Nota " + (dadosNfe.nota.numero || "-") + " · " + dadosNfe.remetente.name : "";
     $("resumo-dados").textContent = $("cepOrigem").value + " → " + $("cepDestino").value + " · " + $("peso").value + " kg";
   }
