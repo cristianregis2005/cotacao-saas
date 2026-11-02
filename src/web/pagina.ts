@@ -71,7 +71,7 @@ export const PAGINA_HTML = `<!doctype html>
     </div>
 
     <section class="cartao" id="secao-carrinho">
-      <h2>Enviar ao carrinho</h2>
+      <h2>Enviar o XML da nota</h2>
       <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
       <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
       <p class="suave" id="nfe-resumo"></p>
