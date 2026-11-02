@@ -20,5 +20,6 @@ export interface Env {
   EMAIL_REMETENTE: string;   // endereço do domínio configurado no Email Service (wrangler.jsonc)
   SEGREDO_LOGIN: string;     // protege os códigos de login (segredo)
   CHAVE_TOKENS: string;      // chave que criptografa os tokens dos clientes: 32 bytes em base64 (segredo)
+  FRENET_PARTNER_TOKEN?: string; // token de parceiro da Frenet, único para o sistema (segredo); exigido para enviar ao carrinho
   EMAIL_SIMULADO?: string;   // "1" só em desenvolvimento: mostra o código no terminal, sem e-mail
 }

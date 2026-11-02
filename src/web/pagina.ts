@@ -89,11 +89,20 @@ export const PAGINA_HTML = `<!doctype html>
       <h2>Opções de frete</h2>
       <div class="tabela-wrap">
         <table>
-          <thead id="cabecalho"><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th><button type="button" class="ordenar" data-campo="prazoDias" data-rotulo="Prazo">Prazo</button></th><th class="preco"><button type="button" class="ordenar" data-campo="preco" data-rotulo="Preço">Preço</button></th></tr></thead>
+          <thead id="cabecalho"><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th><button type="button" class="ordenar" data-campo="prazoDias" data-rotulo="Prazo">Prazo</button></th><th class="preco"><button type="button" class="ordenar" data-campo="preco" data-rotulo="Preço">Preço</button></th><th></th></tr></thead>
           <tbody id="linhas"></tbody>
         </table>
       </div>
       <ul class="avisos" id="avisos"></ul>
+    </section>
+
+    <section class="cartao" id="secao-carrinho" hidden>
+      <h2>Enviar ao carrinho</h2>
+      <p class="suave">Envie o XML da nota fiscal do envio. Depois, use o botão de cada opção na tabela de fretes para criar o pedido no carrinho da transportadora. Nada é pago aqui.</p>
+      <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
+      <p class="suave" id="nfe-resumo"></p>
+      <div class="grade" id="campos-nfe" hidden></div>
+      <p class="msg" id="msg-carrinho"></p>
     </section>
   </section>
 </main>
@@ -227,12 +236,25 @@ export const PAGINA_HTML = `<!doctype html>
       preco.className = "preco";
       preco.textContent = reais(c.preco);
       tr.appendChild(preco);
+      var acao = document.createElement("td");
+      if (c.origem === "Envia") {
+        acao.textContent = "Em breve";
+      } else {
+        var botaoCarrinho = document.createElement("button");
+        botaoCarrinho.type = "button";
+        botaoCarrinho.className = "secundario";
+        botaoCarrinho.textContent = "Enviar ao carrinho";
+        botaoCarrinho.disabled = !dadosNfe;
+        botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
+        acao.appendChild(botaoCarrinho);
+      }
+      tr.appendChild(acao);
       corpo.appendChild(tr);
     });
     if (!lista.length) {
       var vazio = document.createElement("tr");
       var td = document.createElement("td");
-      td.colSpan = 5;
+      td.colSpan = 6;
       td.textContent = "Nenhuma opção encontrada para esses dados.";
       vazio.appendChild(td);
       corpo.appendChild(vazio);
@@ -289,6 +311,8 @@ export const PAGINA_HTML = `<!doctype html>
         return;
       }
       texto($("msg-cotar"), "");
+      ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
+      $("secao-carrinho").hidden = false;
       mostrarUso(r.dados.uso);
       mostrarResultados(r.dados);
     }).catch(function () {
@@ -328,6 +352,94 @@ export const PAGINA_HTML = `<!doctype html>
     $(id).addEventListener("input", function () { buscarDica(id, dicaId); });
     $(id).addEventListener("blur", function () { buscarDica(id, dicaId); });
   });
+
+  // ---- Envio ao carrinho ----
+  var dadosNfe = null;
+  var ultimaEntrada = null;
+  var CAMPOS_DESTINATARIO = [
+    ["name", "Nome"], ["document", "CPF ou CNPJ"], ["phone", "Telefone"], ["postalCode", "CEP"],
+    ["street", "Rua"], ["number", "Número"], ["complement", "Complemento"], ["district", "Bairro"],
+    ["city", "Cidade"], ["state", "UF"]
+  ];
+
+  function montarCamposNfe(destinatario) {
+    var area = $("campos-nfe");
+    area.textContent = "";
+    CAMPOS_DESTINATARIO.forEach(function (c) {
+      var rotulo = document.createElement("label");
+      rotulo.textContent = "Destinatário: " + c[1];
+      var input = document.createElement("input");
+      input.value = destinatario[c[0]] || "";
+      input.addEventListener("input", function () { dadosNfe.destinatario[c[0]] = input.value; });
+      rotulo.appendChild(input);
+      area.appendChild(rotulo);
+    });
+    area.hidden = false;
+  }
+
+  $("arquivoNfe").addEventListener("change", function (e) {
+    var arquivo = e.target.files && e.target.files[0];
+    dadosNfe = null;
+    $("nfe-resumo").textContent = "";
+    $("campos-nfe").hidden = true;
+    desenharLinhas();
+    if (!arquivo) return;
+    $("msg-carrinho").className = "msg";
+    texto($("msg-carrinho"), "Lendo a nota...");
+    arquivo.text().then(function (xml) {
+      return api("/api/carrinho/ler-nfe", { xml: xml });
+    }).then(function (r) {
+      if (r.status === 401) { location.reload(); return; }
+      if (!r.ok) {
+        $("msg-carrinho").className = "msg erro";
+        texto($("msg-carrinho"), r.dados.erro || "Não consegui ler esta nota.");
+        return;
+      }
+      dadosNfe = r.dados.dados;
+      $("nfe-resumo").textContent = "Nota " + (dadosNfe.nota.numero || "-") + " · remetente: " + dadosNfe.remetente.name +
+        " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-");
+      montarCamposNfe(dadosNfe.destinatario);
+      texto($("msg-carrinho"), "Nota lida. Confira os dados do destinatário e escolha a opção de frete na tabela.");
+      desenharLinhas();
+    }).catch(function () {
+      $("msg-carrinho").className = "msg erro";
+      texto($("msg-carrinho"), "Não consegui ler o arquivo. Tente de novo.");
+    });
+  });
+
+  function enviarCarrinho(c, botao) {
+    if (!dadosNfe || !ultimaEntrada) return;
+    var pergunta = "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\n\n" +
+      "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
+    if (!confirm(pergunta)) return;
+    botao.disabled = true;
+    $("msg-carrinho").className = "msg";
+    texto($("msg-carrinho"), "Criando o pedido...");
+    var corpo = {
+      dados: dadosNfe,
+      volume: ultimaEntrada,
+      servico: {
+        origem: c.origem, transportadora: c.transportadora, servico: c.servico, codigo: c.codigo,
+        codigoTransportadora: c.codigoTransportadora, precoBase: c.precoBase, preco: c.preco, prazoDias: c.prazoDias
+      }
+    };
+    api("/api/carrinho/enviar", corpo).then(function (r) {
+      botao.disabled = false;
+      if (r.status === 401) { location.reload(); return; }
+      if (!r.ok) {
+        $("msg-carrinho").className = "msg erro";
+        texto($("msg-carrinho"), r.dados.erro || "Não consegui criar o pedido.");
+        return;
+      }
+      $("msg-carrinho").className = "msg ok";
+      texto($("msg-carrinho"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
+        "). Pague no painel da transportadora.");
+    }).catch(function () {
+      botao.disabled = false;
+      $("msg-carrinho").className = "msg erro";
+      texto($("msg-carrinho"), "Sem conexão. Confira no painel da transportadora antes de tentar de novo.");
+    });
+  }
 
   iniciar();
 })();

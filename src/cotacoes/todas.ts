@@ -13,6 +13,9 @@ export interface CotacaoUnificada {
   servico?: string;
   preco: number;
   prazoDias?: number;
+  codigo?: string | number;              // código do serviço na transportadora (usado no carrinho)
+  codigoTransportadora?: string | number;
+  precoBase?: number;
 }
 
 export interface ResultadoCotacoes {
@@ -44,7 +47,7 @@ export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais
           },
           { token: cred.token, userAgent: "Comparador de Fretes (" + cred.contato + ")" },
         );
-        return lista.map((c) => ({ origem: "SuperFrete", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
+        return lista.map((c) => ({ origem: "SuperFrete", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico }));
       },
     },
     {
@@ -53,7 +56,7 @@ export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais
         const cred = credenciais.frenet;
         if (!cred) throw semToken("frenet");
         const lista = await cotarFrenet(entrada, { token: cred.token });
-        return lista.map((c) => ({ origem: "Frenet", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
+        return lista.map((c) => ({ origem: "Frenet", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora, precoBase: c.precoBase }));
       },
     },
     {
@@ -62,7 +65,7 @@ export async function cotarTodas(entrada: EntradaFrete, credenciais: Credenciais
         const cred = credenciais.melhorenvio;
         if (!cred) throw semToken("melhorenvio");
         const lista = await cotarMelhorEnvio(entrada, { token: cred.token, contato: cred.contato });
-        return lista.map((c) => ({ origem: "Melhor Envio", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias }));
+        return lista.map((c) => ({ origem: "Melhor Envio", transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigoServico }));
       },
     },
   ];

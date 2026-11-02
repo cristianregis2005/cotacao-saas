@@ -4,6 +4,7 @@ import { authRotas } from "./auth/rotas";
 import { cotacaoRotas } from "./cotacoes/rotas";
 import { adminRotas } from "./admin/rotas";
 import { contaRotas } from "./contas/rotas";
+import { carrinhoRotas } from "./carrinho/rotas";
 import { CONTA_HTML } from "./web/conta";
 import { PAGINA_HTML } from "./web/pagina";
 import { ADMIN_HTML } from "./web/admin";
@@ -24,6 +25,9 @@ app.route("/api/cotacoes", cotacaoRotas);
 
 // Tokens do próprio cliente (exigem login): /api/conta/tokens
 app.route("/api/conta", contaRotas);
+
+// Envio ao carrinho das transportadoras (exige login): /api/carrinho/ler-nfe, /api/carrinho/enviar
+app.route("/api/carrinho", carrinhoRotas);
 
 // Administração (exige administrador): /api/admin/usuarios, /api/admin/planos
 app.route("/api/admin", adminRotas);

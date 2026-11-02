@@ -13,6 +13,9 @@ export interface CotacaoFrenet {
   servico?: string;
   preco: number;      // já com a taxa de 3%
   prazoDias: number;
+  codigoServico?: string;
+  codigoTransportadora?: string;
+  precoBase: number;  // sem a taxa: é o valor enviado ao pedido
 }
 
 interface ServicoFrenet {
@@ -22,6 +25,8 @@ interface ServicoFrenet {
   DeliveryTime?: number | string;
   Carrier?: string;
   ServiceDescription?: string;
+  ServiceCode?: string | number;
+  CarrierCode?: string | number;
 }
 
 export async function cotarFrenet(
@@ -82,6 +87,9 @@ export async function cotarFrenet(
       servico: s.ServiceDescription,
       preco: Math.round(preco * (1 + FRENET_TAXA) * 100) / 100,
       prazoDias: prazo,
+      codigoServico: s.ServiceCode === undefined ? undefined : String(s.ServiceCode),
+      codigoTransportadora: s.CarrierCode === undefined ? undefined : String(s.CarrierCode),
+      precoBase: Math.round((Number(s.ShippingPrice) || preco) * 100) / 100,
     });
   }
 
