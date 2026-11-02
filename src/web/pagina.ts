@@ -409,7 +409,7 @@ export const PAGINA_HTML = `<!doctype html>
 
   function enviarCarrinho(c, botao) {
     if (!dadosNfe || !ultimaEntrada) return;
-    var pergunta = "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\n\n" +
+    var pergunta = "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\\n\\n" +
       "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
     if (!confirm(pergunta)) return;
     botao.disabled = true;
