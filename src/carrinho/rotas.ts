@@ -82,6 +82,7 @@ function lerDados(v: unknown): DadosNfe | string {
     remetente,
     destinatario,
     valorDeclarado: typeof o.valorDeclarado === "number" && o.valorDeclarado >= 0 ? o.valorDeclarado : null,
+    pesoNota: typeof o.pesoNota === "number" && o.pesoNota >= 0 ? o.pesoNota : 0,
     nota: {
       numero: texto(nota.numero, 20),
       serie: texto(nota.serie, 5),

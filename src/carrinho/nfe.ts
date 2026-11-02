@@ -26,6 +26,7 @@ export interface DadosNfe {
   remetente: Pessoa;
   destinatario: Pessoa;
   valorDeclarado: number | null;
+  pesoNota: number; // soma do peso bruto dos volumes, para sugerir o peso na tela
   nota: { numero: string; serie: string; data: string; cfop: string };
   itens: ItemNota[];
 }
@@ -86,6 +87,7 @@ export function lerNfe(xml: string): DadosNfe {
   const icms = conteudo(conteudo(inf, "total") ?? "", "ICMSTot");
   const ide = conteudo(inf, "ide");
   const itensXml = todos(inf, "det");
+  const pesoNota = todos(conteudo(inf, "transp") ?? "", "vol").reduce((soma, vol) => soma + numero(texto(vol, "pesoB")), 0);
 
   const remetente: Pessoa = {
     name: texto(emit, "xNome"),
@@ -118,6 +120,7 @@ export function lerNfe(xml: string): DadosNfe {
     remetente,
     destinatario,
     valorDeclarado: valor ? numero(valor) : null,
+    pesoNota,
     nota: {
       numero: texto(ide, "nNF"),
       serie: texto(ide, "serie"),

@@ -70,6 +70,15 @@ export const PAGINA_HTML = `<!doctype html>
       <span><a href="/conta">Minha conta</a> &nbsp; <button class="secundario" id="btn-sair" type="button">Sair</button></span>
     </div>
 
+    <section class="cartao" id="secao-carrinho">
+      <h2>Enviar ao carrinho</h2>
+      <p class="suave">Envie a nota fiscal primeiro. Ela preenche o CEP de destino, o valor declarado e um peso sugerido. Depois de cotar, use o botão da tabela para criar o pedido no carrinho. Nada é pago aqui.</p>
+      <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
+      <p class="suave" id="nfe-resumo"></p>
+      <div class="grade" id="campos-nfe" hidden></div>
+      <p class="msg" id="msg-carrinho"></p>
+    </section>
+
     <form id="form-cotacao" class="cartao">
       <h2>Dados do envio</h2>
       <div class="grade">
@@ -96,14 +105,6 @@ export const PAGINA_HTML = `<!doctype html>
       <ul class="avisos" id="avisos"></ul>
     </section>
 
-    <section class="cartao" id="secao-carrinho" hidden>
-      <h2>Enviar ao carrinho</h2>
-      <p class="suave">Envie o XML da nota fiscal do envio. Depois, use o botão de cada opção na tabela de fretes para criar o pedido no carrinho da transportadora. Nada é pago aqui.</p>
-      <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
-      <p class="suave" id="nfe-resumo"></p>
-      <div class="grade" id="campos-nfe" hidden></div>
-      <p class="msg" id="msg-carrinho"></p>
-    </section>
   </section>
 </main>
 
@@ -312,7 +313,6 @@ export const PAGINA_HTML = `<!doctype html>
       }
       texto($("msg-cotar"), "");
       ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
-      $("secao-carrinho").hidden = false;
       mostrarUso(r.dados.uso);
       mostrarResultados(r.dados);
     }).catch(function () {
@@ -399,6 +399,12 @@ export const PAGINA_HTML = `<!doctype html>
       $("nfe-resumo").textContent = "Nota " + (dadosNfe.nota.numero || "-") + " · remetente: " + dadosNfe.remetente.name +
         " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-");
       montarCamposNfe(dadosNfe.destinatario);
+      if (dadosNfe.destinatario.postalCode) {
+        $("cepDestino").value = dadosNfe.destinatario.postalCode;
+        buscarDica("cepDestino", "dicaDestino");
+      }
+      if (dadosNfe.valorDeclarado != null) $("valor").value = String(dadosNfe.valorDeclarado);
+      if (dadosNfe.pesoNota > 0 && !$("peso").value) $("peso").value = String(dadosNfe.pesoNota);
       texto($("msg-carrinho"), "Nota lida. Confira os dados do destinatário e escolha a opção de frete na tabela.");
       desenharLinhas();
     }).catch(function () {
