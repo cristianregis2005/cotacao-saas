@@ -50,8 +50,8 @@ async function consultar(
 ): Promise<{ cotacoes?: CotacaoEnvia[]; erro?: string }> {
   const fetchFn = opcoes.fetchFn ?? fetch;
   const corpo = {
-    origin: entrada.origem,
-    destination: entrada.destino,
+    origin: { ...entrada.origem, country: "BR" },
+    destination: { ...entrada.destino, country: "BR" },
     packages: [{
       type: "box",
       content: "Geral",
@@ -85,12 +85,13 @@ async function consultar(
   }
 
   const bruto = await resp.text();
-  let dados: { data?: Registro[] };
+  let dados: { data?: Registro[]; error?: { message?: string } };
   try {
-    dados = JSON.parse(bruto) as { data?: Registro[] };
+    dados = JSON.parse(bruto) as { data?: Registro[]; error?: { message?: string } };
   } catch {
     return { erro: `Resposta não é JSON válido: ${bruto.slice(0, 200)}` };
   }
+  if (dados.error?.message) return { erro: `a Envia recusou os dados: ${dados.error.message}` };
 
   const cotacoes: CotacaoEnvia[] = [];
   for (const item of dados.data ?? []) {
