@@ -8,12 +8,15 @@ import { carrinhoRotas } from "./carrinho/rotas";
 import { CONTA_HTML } from "./web/conta";
 import { PAGINA_HTML } from "./web/pagina";
 import { ADMIN_HTML } from "./web/admin";
+import { PRIVACIDADE_HTML, TERMOS_HTML } from "./web/legal";
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/", (c) => c.html(PAGINA_HTML));
 app.get("/admin", (c) => c.html(ADMIN_HTML));
 app.get("/conta", (c) => c.html(CONTA_HTML));
+app.get("/termos", (c) => c.html(TERMOS_HTML));
+app.get("/privacidade", (c) => c.html(PRIVACIDADE_HTML));
 
 app.get("/api/saude", (c) => c.json({ ok: true }));
 

@@ -126,6 +126,7 @@ export const PAGINA_HTML = `<!doctype html>
     </section>
 
   </section>
+  <footer class="suave" style="text-align:center;margin:24px 0 8px;font-size:0.8rem;color:var(--suave)"><a href="/termos">Termos de uso</a> · <a href="/privacidade">Privacidade</a></footer>
 </main>
 
 <script>
