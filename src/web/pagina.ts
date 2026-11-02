@@ -264,7 +264,12 @@ export const PAGINA_HTML = `<!doctype html>
       tr.appendChild(preco);
       var acao = document.createElement("td");
       if (c.origem === "Envia") {
-        acao.textContent = "Em breve";
+        var emBreve = document.createElement("button");
+        emBreve.type = "button";
+        emBreve.className = "secundario";
+        emBreve.textContent = "Em breve";
+        emBreve.disabled = true;
+        acao.appendChild(emBreve);
       } else {
         var botaoCarrinho = document.createElement("button");
         botaoCarrinho.type = "button";
