@@ -115,6 +115,7 @@ export const PAGINA_HTML = `<!doctype html>
 
     <section class="cartao" id="resultado" hidden>
       <h2>Opções de frete</h2>
+      <p class="suave" id="frete-nota"></p>
       <div class="tabela-wrap">
         <table>
           <thead id="cabecalho"><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th><button type="button" class="ordenar" data-campo="prazoDias" data-rotulo="Prazo">Prazo</button></th><th class="preco"><button type="button" class="ordenar" data-campo="preco" data-rotulo="Preço">Preço</button></th><th></th></tr></thead>
@@ -289,6 +290,7 @@ export const PAGINA_HTML = `<!doctype html>
 
   function mostrarResultados(resultado) {
     resultadoAtual = resultado.cotacoes || [];
+    atualizarFreteNota();
     ordem = { campo: "preco", sentido: 1 };
     desenharLinhas();
     var avisos = $("avisos");
@@ -427,7 +429,9 @@ export const PAGINA_HTML = `<!doctype html>
       }
       dadosNfe = r.dados.dados;
       $("nfe-resumo").textContent = "Nota " + (dadosNfe.nota.numero || "-") + " · remetente: " + dadosNfe.remetente.name +
-        " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-");
+        " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-") +
+        " · frete na nota: " + (dadosNfe.valorFrete > 0 ? reais(dadosNfe.valorFrete) : "não informado");
+      atualizarFreteNota();
       montarCamposNfe(dadosNfe.destinatario);
       if (dadosNfe.destinatario.postalCode) {
         $("cepDestino").value = dadosNfe.destinatario.postalCode;
@@ -518,7 +522,15 @@ export const PAGINA_HTML = `<!doctype html>
     $("campos-nfe").hidden = true;
     $("resumo-nfe").textContent = "";
     $("resumo-dados").textContent = "";
+    $("frete-nota").textContent = "";
     desenharLinhas();
+  }
+
+  // Mostra o frete cobrado na nota acima da tabela, para comparar com as opções.
+  function atualizarFreteNota() {
+    $("frete-nota").textContent = dadosNfe && dadosNfe.valorFrete > 0
+      ? "Frete cobrado na nota: " + reais(dadosNfe.valorFrete)
+      : (dadosNfe ? "A nota não informa valor de frete." : "");
   }
 
   iniciar();

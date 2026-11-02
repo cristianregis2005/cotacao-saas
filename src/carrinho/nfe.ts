@@ -27,6 +27,7 @@ export interface DadosNfe {
   destinatario: Pessoa;
   valorDeclarado: number | null;
   pesoNota: number; // soma do peso bruto dos volumes, para sugerir o peso na tela
+  valorFrete: number; // frete cobrado, conforme informado na nota (vFrete)
   nota: { numero: string; serie: string; data: string; cfop: string };
   itens: ItemNota[];
 }
@@ -121,6 +122,7 @@ export function lerNfe(xml: string): DadosNfe {
     destinatario,
     valorDeclarado: valor ? numero(valor) : null,
     pesoNota,
+    valorFrete: numero(texto(icms, "vFrete")),
     nota: {
       numero: texto(ide, "nNF"),
       serie: texto(ide, "serie"),
