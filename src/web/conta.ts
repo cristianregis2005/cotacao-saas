@@ -29,6 +29,13 @@ export const CONTA_HTML = `<!doctype html>
   .msg.ok { color: var(--ok); }
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .grade { grid-template-columns: 1fr; } }
+  .token-linha { display: flex; gap: 8px; align-items: flex-end; }
+  .token-linha label { flex: 1; min-width: 0; margin: 10px 0 0; }
+  input[readonly] { color: var(--suave); letter-spacing: 2px; cursor: default; }
+  .icone { width: 44px; height: 44px; flex: 0 0 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 0; background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  .icone:hover { border-color: var(--destaque); }
+  .icone.perigo { color: var(--erro); }
+  .icone svg { width: 20px; height: 20px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -55,6 +62,14 @@ export const CONTA_HTML = `<!doctype html>
     });
   }
 
+  function icone(caminho) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + caminho + '</svg>';
+  }
+  var LAPIS = icone('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>');
+  var CONFIRMAR = icone('<path d="M20 6 9 17l-5-5"/>');
+  var CANCELAR = icone('<path d="M18 6 6 18M6 6l12 12"/>');
+  var LIXEIRA = icone('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>');
+
   function montarCartao(t) {
     var cartao = document.createElement("section");
     cartao.className = "cartao";
@@ -65,20 +80,36 @@ export const CONTA_HTML = `<!doctype html>
     titulo.textContent = t.nome;
     var status = document.createElement("span");
     status.className = "status" + (t.configurado ? " ok" : "");
-    status.textContent = t.configurado ? "Configurado (termina em " + t.final_token + ")" : "Não configurado";
+    status.textContent = t.configurado ? "Criptografado · termina em " + t.final_token : "Não configurado";
     topo.appendChild(titulo);
     topo.appendChild(status);
     cartao.appendChild(topo);
 
+    // Token salvo: campo mostra asteriscos e os ícones trocam ou removem.
+    // Em edição: o ícone da esquerda salva e o da direita cancela.
+    var editando = !t.configurado;
+
     var form = document.createElement("form");
+    var linha = document.createElement("div");
+    linha.className = "token-linha";
+
     var rotuloToken = document.createElement("label");
     rotuloToken.textContent = "Token da " + t.nome;
     var inputToken = document.createElement("input");
     inputToken.type = "password";
     inputToken.autocomplete = "off";
-    inputToken.required = true;
+    inputToken.placeholder = "Cole o token";
     rotuloToken.appendChild(inputToken);
-    form.appendChild(rotuloToken);
+    linha.appendChild(rotuloToken);
+
+    var botaoTrocar = document.createElement("button");
+    botaoTrocar.className = "icone";
+    var botaoRemover = document.createElement("button");
+    botaoRemover.type = "button";
+    botaoRemover.className = "icone perigo";
+    linha.appendChild(botaoTrocar);
+    linha.appendChild(botaoRemover);
+    form.appendChild(linha);
 
     var rotuloContato = document.createElement("label");
     rotuloContato.textContent = "E-mail de contato (opcional, usa o seu e-mail se ficar em branco)";
@@ -88,42 +119,77 @@ export const CONTA_HTML = `<!doctype html>
     rotuloContato.appendChild(inputContato);
     form.appendChild(rotuloContato);
 
-    var botao = document.createElement("button");
-    botao.type = "submit";
-    botao.textContent = t.configurado ? "Trocar token" : "Salvar token";
-    form.appendChild(botao);
-
     var msg = document.createElement("p");
     msg.className = "msg";
     form.appendChild(msg);
 
+    function desenhar() {
+      if (editando) {
+        inputToken.readOnly = false;
+        inputToken.required = true;
+        botaoTrocar.type = "submit";
+        botaoTrocar.innerHTML = CONFIRMAR;
+        botaoTrocar.title = "Salvar token";
+        botaoTrocar.setAttribute("aria-label", "Salvar token");
+        botaoRemover.innerHTML = CANCELAR;
+        botaoRemover.title = "Cancelar";
+        botaoRemover.setAttribute("aria-label", "Cancelar");
+        botaoRemover.hidden = !t.configurado;
+      } else {
+        inputToken.readOnly = true;
+        inputToken.required = false;
+        inputToken.value = "*".repeat(24);
+        botaoTrocar.type = "button";
+        botaoTrocar.innerHTML = LAPIS;
+        botaoTrocar.title = "Trocar token";
+        botaoTrocar.setAttribute("aria-label", "Trocar token");
+        botaoRemover.innerHTML = LIXEIRA;
+        botaoRemover.title = "Remover token";
+        botaoRemover.setAttribute("aria-label", "Remover token");
+        botaoRemover.hidden = false;
+      }
+    }
+
+    botaoTrocar.addEventListener("click", function () {
+      if (editando) return; // em edição, o envio do formulário salva
+      editando = true;
+      inputToken.value = "";
+      msg.className = "msg";
+      msg.textContent = "";
+      desenhar();
+      inputToken.focus();
+    });
+
+    botaoRemover.addEventListener("click", function () {
+      if (editando) {
+        if (!t.configurado) return;
+        editando = false;
+        inputToken.value = "";
+        msg.className = "msg";
+        msg.textContent = "";
+        desenhar();
+        return;
+      }
+      if (!confirm("Remover o token da " + t.nome + "?")) return;
+      api("/api/conta/tokens/" + t.transportadora, null, "DELETE").then(function () { carregar(); });
+    });
+
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      botao.disabled = true;
+      botaoTrocar.disabled = true;
       msg.className = "msg";
       msg.textContent = "";
       api("/api/conta/tokens/" + t.transportadora, { token: inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
-        botao.disabled = false;
+        botaoTrocar.disabled = false;
         if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui salvar."; return; }
         msg.className = "msg ok";
         msg.textContent = "Token salvo.";
         carregar();
       });
     });
+
     cartao.appendChild(form);
-
-    if (t.configurado) {
-      var remover = document.createElement("button");
-      remover.type = "button";
-      remover.className = "secundario";
-      remover.textContent = "Remover token";
-      remover.addEventListener("click", function () {
-        if (!confirm("Remover o token da " + t.nome + "?")) return;
-        api("/api/conta/tokens/" + t.transportadora, null, "DELETE").then(function () { carregar(); });
-      });
-      cartao.appendChild(remover);
-    }
-
+    desenhar();
     return cartao;
   }
 
@@ -199,6 +265,37 @@ export const CONTA_HTML = `<!doctype html>
         msg.textContent = r.ok ? "Dados salvos." : (r.dados.erro || "Não consegui salvar.");
       });
     });
+
+    // Ao digitar um CEP completo, busca rua, bairro, cidade e UF.
+    var ultimoCep = "";
+    function buscarCep() {
+      var cep = inputs.origem_cep.value.replace(/[^0-9]/g, "");
+      if (cep.length !== 8 || cep === ultimoCep) return;
+      ultimoCep = cep;
+      fetch("https://viacep.com.br/ws/" + cep + "/json/")
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (cep !== ultimoCep) return; // o usuário já digitou outro CEP
+          if (d.erro) {
+            msg.className = "msg erro";
+            msg.textContent = "CEP não encontrado. Preencha o endereço à mão.";
+            return;
+          }
+          inputs.origem_logradouro.value = d.logradouro || "";
+          inputs.origem_bairro.value = d.bairro || "";
+          inputs.origem_cidade.value = d.localidade || "";
+          inputs.origem_uf.value = d.uf || "";
+          msg.className = "msg";
+          msg.textContent = "Endereço encontrado. Confira e informe o número.";
+        })
+        .catch(function () {
+          ultimoCep = "";
+          msg.className = "msg erro";
+          msg.textContent = "Não consegui buscar o CEP agora. Preencha o endereço à mão.";
+        });
+    }
+    inputs.origem_cep.addEventListener("input", buscarCep);
+    inputs.origem_cep.addEventListener("blur", buscarCep);
 
     cartao.appendChild(form);
     return cartao;
