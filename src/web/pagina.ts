@@ -750,6 +750,13 @@ export const PAGINA_HTML = `<!doctype html>
 
   $("dce-cep").addEventListener("blur", function () {
     if (!dadosNfe) buscarDica("cepDestino", "dicaDestino");
+    // CEP apagado: limpa o endereço que veio da busca (número e complemento são digitados à mão, ficam).
+    if ($("dce-cep").value.replace(/\D/g, "") === "") {
+      ultimoCepDce = "";
+      ["dce-logradouro", "dce-bairro", "dce-cidade", "dce-uf"].forEach(function (id) { $(id).value = ""; });
+      texto($("dicaDce"), "");
+      return;
+    }
     buscarCepDce();
   });
 
