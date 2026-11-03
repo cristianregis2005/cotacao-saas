@@ -1,0 +1,19 @@
+{
+  // Site público (www.cliquefrete.com.br). Não é o app: o app fica em app.cliquefrete.com.br.
+  "name": "cliquefrete-site",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  // Páginas estáticas da pasta public/.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  // Envio do formulário de contato (mesmo Email Sending verificado para o app).
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
+  "vars": {
+    "EMAIL_REMETENTE": "nao-responda@mail.cliquefrete.com.br",
+    "EMAIL_DESTINO": "contato@cliquefrete.com.br"
+  }
+}

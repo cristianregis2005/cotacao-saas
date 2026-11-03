@@ -1,0 +1,145 @@
+:root {
+  --cor-texto: #1d2433;
+  --cor-suave: #5b6478;
+  --cor-fundo: #ffffff;
+  --cor-faixa: #f4f6fa;
+  --cor-marca: #1f5fd6;
+  --cor-marca-escura: #164aa8;
+  --cor-verde: #1f8a4c;
+  --cor-borda: #d9dee8;
+  --raio: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cor-texto: #e8ecf5;
+    --cor-suave: #a6afc2;
+    --cor-fundo: #111620;
+    --cor-faixa: #1a2130;
+    --cor-marca: #5b8def;
+    --cor-marca-escura: #3f70d6;
+    --cor-borda: #2c3547;
+  }
+}
+
+:root[data-theme="dark"] {
+  --cor-texto: #e8ecf5;
+  --cor-suave: #a6afc2;
+  --cor-fundo: #111620;
+  --cor-faixa: #1a2130;
+  --cor-marca: #5b8def;
+  --cor-marca-escura: #3f70d6;
+  --cor-borda: #2c3547;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+}
+
+img { max-width: 100%; height: auto; }
+a { color: var(--cor-marca); }
+
+.container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+
+header.topo {
+  border-bottom: 1px solid var(--cor-borda);
+  background: var(--cor-fundo);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+header.topo .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.marca { font-weight: 800; font-size: 1.15rem; text-decoration: none; color: var(--cor-texto); }
+nav ul { list-style: none; display: flex; gap: 16px; margin: 0; padding: 0; flex-wrap: wrap; }
+nav a { text-decoration: none; color: var(--cor-texto); font-size: 0.95rem; }
+nav a:hover { color: var(--cor-marca); }
+
+.botao {
+  display: inline-block;
+  background: var(--cor-marca);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--raio);
+  text-decoration: none;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.botao:hover { background: var(--cor-marca-escura); }
+.botao.secundario { background: transparent; color: var(--cor-marca); border: 1px solid var(--cor-marca); }
+.botao.whats { background: var(--cor-verde); }
+.botao.whats:hover { background: #17703c; }
+
+section { padding: 40px 0; }
+section.faixa { background: var(--cor-faixa); }
+
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.2; margin: 0 0 16px; }
+h2 { font-size: clamp(1.4rem, 3vw, 1.9rem); margin: 0 0 12px; }
+h3 { font-size: 1.15rem; margin: 0 0 8px; }
+p.lead { font-size: 1.12rem; color: var(--cor-suave); margin: 0 0 24px; }
+
+.grade-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card {
+  background: var(--cor-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: 20px;
+}
+.acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+.migalhas { font-size: 0.9rem; color: var(--cor-suave); margin: 24px 0 0; }
+
+form.contato { display: grid; gap: 14px; max-width: 560px; }
+form.contato label { display: grid; gap: 6px; font-weight: 600; font-size: 0.95rem; }
+form.contato input, form.contato textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+form.contato textarea { min-height: 140px; resize: vertical; }
+.msg { font-size: 0.95rem; margin: 0; min-height: 1.4em; }
+.msg.erro { color: #b42318; }
+.msg.ok { color: var(--cor-verde); }
+.escondido { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+footer.rodape { border-top: 1px solid var(--cor-borda); padding: 28px 0; font-size: 0.9rem; color: var(--cor-suave); }
+footer.rodape ul { list-style: none; padding: 0; display: flex; gap: 16px; flex-wrap: wrap; }
+
+.artigo { max-width: 720px; }
+.artigo h2 { margin-top: 32px; }
+.artigo ul, .artigo ol { padding-left: 22px; }
+.data { color: var(--cor-suave); font-size: 0.9rem; }
+
+.botao-flutuante {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  padding: 12px 18px;
+}
+
+@media (max-width: 600px) {
+  nav ul { gap: 10px; }
+  section { padding: 28px 0; }
+}

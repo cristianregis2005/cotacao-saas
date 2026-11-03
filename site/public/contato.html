@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contato | Clique Frete</title>
+  <meta name="description" content="Fale com a Clique Frete pelo formulário, pelo e-mail ou pelo WhatsApp. Tire dúvidas sobre cotação de frete e envio de pedidos.">
+  <link rel="canonical" href="https://www.cliquefrete.com.br/contato">
+  <meta property="og:title" content="Contato | Clique Frete">
+  <meta property="og:description" content="Fale com a Clique Frete pelo formulário ou WhatsApp.">
+  <meta property="og:url" content="https://www.cliquefrete.com.br/contato">
+  <meta name="robots" content="index, follow">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="container">
+      <a class="marca" href="/">Clique Frete</a>
+      <nav aria-label="Principal">
+        <ul>
+          <li><a href="/como-funciona">Como funciona</a></li>
+          <li><a href="/faq">Perguntas frequentes</a></li>
+          <li><a href="/noticias/">Notícias</a></li>
+          <li><a href="/contato">Contato</a></li>
+          <li><a href="https://app.cliquefrete.com.br">Entrar no app</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Fale com a gente</h1>
+        <p class="lead">Envie sua dúvida ou sugestão. Respondemos pelo e-mail informado no formulário.</p>
+
+        <div class="grade-cards" style="margin-bottom:28px">
+          <article class="card">
+            <h3>WhatsApp</h3>
+            <p>Resposta mais rápida para dúvidas do dia a dia.</p>
+            <p><a class="botao whats" href="https://wa.me/5547999998888?text=Oi%2C%20tenho%20uma%20d%C3%BAvida%20sobre%20a%20Clique%20Frete" target="_blank" rel="noopener">Abrir WhatsApp</a></p>
+          </article>
+          <article class="card">
+            <h3>E-mail</h3>
+            <p>Para assuntos formais, envie para <a href="mailto:contato@cliquefrete.com.br">contato@cliquefrete.com.br</a>.</p>
+          </article>
+        </div>
+
+        <form class="contato" id="form-contato" novalidate>
+          <label>Nome
+            <input name="nome" autocomplete="name" maxlength="120" required>
+          </label>
+          <label>E-mail
+            <input name="email" type="email" autocomplete="email" maxlength="160" required>
+          </label>
+          <label>Telefone (opcional)
+            <input name="telefone" type="tel" autocomplete="tel" maxlength="30">
+          </label>
+          <label>Mensagem
+            <textarea name="mensagem" maxlength="3000" required></textarea>
+          </label>
+          <!-- Campo escondido para pessoas: não preencha. -->
+          <div class="escondido" aria-hidden="true">
+            <label>Site <input name="site" tabindex="-1" autocomplete="off"></label>
+          </div>
+          <button class="botao" type="submit" id="btn-enviar">Enviar mensagem</button>
+          <p class="msg" id="msg-contato" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <ul>
+        <li><a href="/como-funciona">Como funciona</a></li>
+        <li><a href="/faq">Perguntas frequentes</a></li>
+        <li><a href="/noticias/">Notícias</a></li>
+        <li><a href="/contato">Contato</a></li>
+        <li><a href="https://app.cliquefrete.com.br/termos">Termos de uso</a></li>
+        <li><a href="https://app.cliquefrete.com.br/privacidade">Privacidade</a></li>
+      </ul>
+      <p>Clique Frete é um produto da MRP Sistemas · CNPJ 27.390.826/0002-41 · contato@cliquefrete.com.br</p>
+    </div>
+  </footer>
+
+  <a class="botao whats botao-flutuante" href="https://wa.me/5547999998888?text=Oi%2C%20quero%20saber%20como%20economizar%20no%20frete" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">WhatsApp</a>
+  <script src="/assets/site.js"></script>
+</body>
+</html>
