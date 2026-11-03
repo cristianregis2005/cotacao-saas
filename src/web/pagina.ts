@@ -36,6 +36,14 @@ export const PAGINA_HTML = `<!doctype html>
   td.preco, th.preco { text-align: right; }
   tr.melhor td { font-weight: 700; color: var(--ok); }
   .avisos { color: var(--suave); font-size: 0.9rem; margin: 10px 0 0; padding-left: 18px; }
+  .dce-item { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+  .dce-item label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+  .icone-acao { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .icone-acao svg { width: 20px; height: 20px; }
+  @media (max-width: 600px) {
+    .dce-item { grid-template-columns: 1fr 1fr 40px; }
+    .dce-item label:first-child { grid-column: 1 / -1; }
+  }
   button.ordenar { background: none; color: var(--texto); border: 0; padding: 0; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
   .dica { display: block; margin-top: 4px; font-size: 0.85rem; color: var(--suave); min-height: 1.2em; }
   .dica.erro { color: var(--erro); }
@@ -109,7 +117,7 @@ export const PAGINA_HTML = `<!doctype html>
       </div>
       <h3>Produtos</h3>
       <div id="dce-itens"></div>
-      <p><button type="button" class="secundario" id="btn-add-item">Adicionar produto</button> <span class="suave" id="dce-total"></span></p>
+      <p><button type="button" class="secundario icone-acao" id="btn-add-item" aria-label="Adicionar produto" title="Adicionar produto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button> <span class="suave" id="dce-total"></span></p>
     </section>
 
     <form id="form-cotacao" class="cartao">
@@ -620,7 +628,7 @@ export const PAGINA_HTML = `<!doctype html>
 
   function criarItem() {
     var linha = document.createElement("div");
-    linha.className = "grade dce-item";
+    linha.className = "dce-item";
     var campos = [["descricao", "Produto", "text"], ["quantidade", "Quantidade", "numeric"], ["valor", "Valor unitário (R$)", "decimal"]];
     campos.forEach(function (d) {
       var rotulo = document.createElement("label");
@@ -635,8 +643,10 @@ export const PAGINA_HTML = `<!doctype html>
     });
     var remover = document.createElement("button");
     remover.type = "button";
-    remover.className = "secundario";
-    remover.textContent = "Remover";
+    remover.className = "secundario icone-acao";
+    remover.setAttribute("aria-label", "Remover produto");
+    remover.title = "Remover produto";
+    remover.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
     remover.addEventListener("click", function () {
       linha.parentNode.removeChild(linha);
       atualizarTotalDce();
