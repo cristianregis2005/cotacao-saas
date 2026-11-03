@@ -1,0 +1,19 @@
+# Clique Frete
+
+> Comparador de fretes para quem envia pedidos. Reúne cotações da SuperFrete, Melhor Envio, Frenet e Envia, permite enviar a nota fiscal ao carrinho da transportadora escolhida, e o pagamento é feito no painel da transportadora.
+
+Empresa: MRP Sistemas (CNPJ 27.390.826/0002-41). Contato: contato@cliquefrete.com.br.
+O sistema fica em https://app.cliquefrete.com.br.
+
+## Páginas
+
+- [Início](https://www.cliquefrete.com.br/): o que é a Clique Frete e como economizar no frete.
+- [Como funciona](https://www.cliquefrete.com.br/como-funciona): passo a passo para cotar e enviar ao carrinho.
+- [Perguntas frequentes](https://www.cliquefrete.com.br/faq): cobrança, nota fiscal, DC-e, transportadoras e privacidade.
+- [Notícias](https://www.cliquefrete.com.br/noticias/): mudanças para quem envia pedidos, com fontes citadas.
+- [Contato](https://www.cliquefrete.com.br/contato): formulário, e-mail e WhatsApp.
+
+## Termos
+
+- [Termos de uso](https://app.cliquefrete.com.br/termos)
+- [Política de privacidade](https://app.cliquefrete.com.br/privacidade)
