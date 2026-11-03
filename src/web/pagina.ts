@@ -725,22 +725,32 @@ export const PAGINA_HTML = `<!doctype html>
 
   // Preenche rua, bairro, cidade e UF pelo CEP, como na tela de Meus dados.
   // Sem nota, o CEP de destino da cotação é o mesmo CEP informado na DC-e.
-  $("dce-cep").addEventListener("input", function () {
-    if (!dadosNfe) $("cepDestino").value = $("dce-cep").value.trim();
-  });
+  var ultimoCepDce = "";
 
-  $("dce-cep").addEventListener("blur", function () {
-    if (!dadosNfe) buscarDica("cepDestino", "dicaDestino");
+  // Busca rua, bairro, cidade e UF assim que o CEP tem 8 dígitos (ou ao sair do campo).
+  function buscarCepDce() {
     var cep = $("dce-cep").value.replace(/\D/g, "");
-    if (cep.length !== 8) return;
+    if (cep.length !== 8 || cep === ultimoCepDce) return;
+    ultimoCepDce = cep;
     fetch("https://viacep.com.br/ws/" + cep + "/json/").then(function (r) { return r.json(); }).then(function (d) {
-      if (d.erro) { texto($("dicaDce"), "CEP não encontrado."); return; }
+      if (cep !== ultimoCepDce) return; // o usuário já digitou outro CEP
+      if (d.erro) { texto($("dicaDce"), "CEP não encontrado. Preencha o endereço à mão."); return; }
       texto($("dicaDce"), "");
       $("dce-logradouro").value = d.logradouro || "";
       $("dce-bairro").value = d.bairro || "";
       $("dce-cidade").value = d.localidade || "";
       $("dce-uf").value = d.uf || "";
-    }).catch(function () {});
+    }).catch(function () { texto($("dicaDce"), "Não consegui buscar o CEP. Preencha o endereço à mão."); });
+  }
+
+  $("dce-cep").addEventListener("input", function () {
+    if (!dadosNfe) $("cepDestino").value = $("dce-cep").value.trim();
+    buscarCepDce();
+  });
+
+  $("dce-cep").addEventListener("blur", function () {
+    if (!dadosNfe) buscarDica("cepDestino", "dicaDestino");
+    buscarCepDce();
   });
 
   criarItem();
