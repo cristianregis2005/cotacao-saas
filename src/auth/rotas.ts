@@ -68,7 +68,7 @@ authRotas.post("/codigo", async (c) => {
   try {
     await c.env.EMAIL.send({
       to: email,
-      from: { email: c.env.EMAIL_REMETENTE, name: "Comparador de Fretes" },
+      from: { email: c.env.EMAIL_REMETENTE, name: "Clique Frete" },
       subject: `Seu código de acesso: ${codigo}`,
       text: `Seu código de acesso é ${codigo}. Ele vale por ${VALIDADE_CODIGO_MIN} minutos. Se não foi você, ignore este e-mail.`,
       html: `<p>Seu código de acesso é <strong>${codigo}</strong>.</p><p>Ele vale por ${VALIDADE_CODIGO_MIN} minutos. Se não foi você, ignore este e-mail.</p>`,
