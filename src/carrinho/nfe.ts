@@ -30,6 +30,7 @@ export interface DadosNfe {
   valorFrete: number; // frete cobrado, conforme informado na nota (vFrete)
   nota: { numero: string; serie: string; data: string; cfop: string };
   itens: ItemNota[];
+  semNota?: boolean; // envio sem NF-e (DC-e): a chave é gerada aqui e não vai para a transportadora
 }
 
 export class NfeError extends Error {}

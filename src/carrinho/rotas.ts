@@ -94,6 +94,80 @@ function lerDados(v: unknown): DadosNfe | string {
   };
 }
 
+// Envio sem nota (DC-e): o remetente vem do cadastro e só pode ser pessoa física (CPF).
+async function remetenteDoCadastro(db: D1Database, usuarioId: string): Promise<Pessoa | string> {
+  const cad = await db
+    .prepare(
+      "SELECT nome, empresa, documento, telefone, origem_cep, origem_logradouro, origem_numero, origem_complemento, origem_bairro, origem_cidade, origem_uf FROM usuarios WHERE id = ?",
+    )
+    .bind(usuarioId)
+    .first<Record<string, string | null>>();
+  if (!cad) return "Cadastro não encontrado. Entre de novo.";
+  const documento = (cad.documento ?? "").replace(/\D/g, "");
+  if (documento.length !== 11) {
+    return "Sem nota fiscal, o envio só é permitido para pessoa física. Cadastre seu CPF em Meus dados ou envie a nota fiscal.";
+  }
+  const nome = cad.empresa || cad.nome || "";
+  if (!nome) return "Preencha seu nome em Meus dados.";
+  if (!cad.origem_cep || !cad.origem_logradouro || !cad.origem_cidade || !cad.origem_uf) {
+    return "Complete o endereço de origem em Meus dados.";
+  }
+  return {
+    name: nome,
+    document: documento,
+    stateRegister: "",
+    street: cad.origem_logradouro,
+    number: cad.origem_numero ?? "",
+    complement: cad.origem_complemento ?? "",
+    district: cad.origem_bairro ?? "",
+    city: cad.origem_cidade,
+    state: cad.origem_uf,
+    postalCode: cad.origem_cep,
+    phone: cad.telefone ?? "",
+  };
+}
+
+// Dados da DC-e: destinatário, produtos com valor e quantidade. Sem chave de nota.
+function lerDadosSemNota(v: unknown, remetente: Pessoa): DadosNfe | string {
+  const o = objeto(v);
+  const destinatario = pessoa(o.destinatario);
+  const docDest = destinatario.document.replace(/\D/g, "");
+  if (docDest.length !== 11 && docDest.length !== 14) return "CPF ou CNPJ do destinatário inválido.";
+  if (!destinatario.name || !destinatario.street || !destinatario.city || destinatario.postalCode.replace(/\D/g, "").length !== 8) {
+    return "Preencha nome, rua, cidade e CEP do destinatário.";
+  }
+
+  const itens: ItemNota[] = Array.isArray(o.itens)
+    ? o.itens.slice(0, 200).map((i) => {
+        const r = objeto(i);
+        return {
+          descricao: texto(r.descricao, 120),
+          quantidade: typeof r.quantidade === "number" ? r.quantidade : 0,
+          valorUnitario: typeof r.valorUnitario === "number" ? r.valorUnitario : 0,
+        };
+      })
+    : [];
+  if (!itens.length) return "Adicione pelo menos um produto na DC-e.";
+  for (const i of itens) {
+    if (!i.descricao) return "Preencha a descrição de todos os produtos.";
+    if (!Number.isInteger(i.quantidade) || i.quantidade < 1) return "A quantidade de cada produto deve ser um número inteiro maior que zero.";
+    if (!(i.valorUnitario > 0)) return "Informe o valor unitário de cada produto.";
+  }
+
+  const valor = Math.round(itens.reduce((soma, i) => soma + i.quantidade * i.valorUnitario, 0) * 100) / 100;
+  return {
+    chave: `dce-${crypto.randomUUID()}`,
+    remetente,
+    destinatario,
+    valorDeclarado: valor,
+    pesoNota: 0,
+    valorFrete: 0,
+    nota: { numero: "", serie: "", data: "", cfop: "" },
+    itens,
+    semNota: true,
+  };
+}
+
 const positivo = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 
 function lerVolume(v: unknown): Volume | null {
@@ -167,7 +241,14 @@ carrinhoRotas.post("/enviar", async (c) => {
   if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
 
   const corpo = objeto(await c.req.json().catch(() => null));
-  const dados = lerDados(corpo.dados);
+  let dados: DadosNfe | string;
+  if (objeto(corpo.dados).semNota === true) {
+    const remetente = await remetenteDoCadastro(c.env.DB, usuario.id);
+    if (typeof remetente === "string") return c.json({ erro: remetente }, 400);
+    dados = lerDadosSemNota(corpo.dados, remetente);
+  } else {
+    dados = lerDados(corpo.dados);
+  }
   if (typeof dados === "string") return c.json({ erro: dados }, 400);
 
   const volume = lerVolume(corpo.volume);
@@ -189,17 +270,19 @@ carrinhoRotas.post("/enviar", async (c) => {
     return c.json({ erro: "Token de parceiro da Frenet não configurado no sistema." }, 500);
   }
 
-  // Não cria a mesma nota duas vezes na mesma transportadora.
-  const existente = await c.env.DB.prepare(
-    "SELECT 1 AS achou FROM pedidos_carrinho WHERE usuario_id = ? AND transportadora = ? AND chave_nfe = ?",
-  )
-    .bind(usuario.id, transportadora, dados.chave)
-    .first();
-  if (existente) {
-    return c.json(
-      { erro: `Esta nota já foi enviada ao carrinho da ${NOMES[transportadora as Transportadora]}. Confira no painel antes de tentar de novo.` },
-      409,
-    );
+  // Não cria a mesma nota duas vezes na mesma transportadora (a DC-e tem chave nova a cada envio).
+  if (!dados.semNota) {
+    const existente = await c.env.DB.prepare(
+      "SELECT 1 AS achou FROM pedidos_carrinho WHERE usuario_id = ? AND transportadora = ? AND chave_nfe = ?",
+    )
+      .bind(usuario.id, transportadora, dados.chave)
+      .first();
+    if (existente) {
+      return c.json(
+        { erro: `Esta nota já foi enviada ao carrinho da ${NOMES[transportadora as Transportadora]}. Confira no painel antes de tentar de novo.` },
+        409,
+      );
+    }
   }
 
   let payload: unknown;
