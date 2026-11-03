@@ -348,7 +348,7 @@ export const PAGINA_HTML = `<!doctype html>
     $("msg-cotar").className = "msg";
     var corpo = {
       cepOrigem: $("cepOrigem").value,
-      cepDestino: $("cepDestino").value,
+      cepDestino: !dadosNfe && $("dce-cep").value.trim() ? $("dce-cep").value.trim() : $("cepDestino").value,
       peso: numero("peso"),
       comprimento: numero("comprimento"),
       largura: numero("largura"),
@@ -588,6 +588,7 @@ export const PAGINA_HTML = `<!doctype html>
     $("dicaDestino").textContent = "";
     dadosNfe = null;
     atualizarDce();
+    $("cepDestino").value = $("dce-cep").value.trim();
     ultimaEntrada = null;
     resultadoAtual = [];
     $("resultado").hidden = true;
@@ -703,6 +704,7 @@ export const PAGINA_HTML = `<!doctype html>
 
   function limparDce() {
     CAMPOS_DCE.forEach(function (id) { $(id).value = ""; });
+    $("cepDestino").value = "";
     $("dce-itens").textContent = "";
     texto($("dce-total"), "");
     texto($("dicaDce"), "");
@@ -712,7 +714,13 @@ export const PAGINA_HTML = `<!doctype html>
   $("btn-add-item").addEventListener("click", function () { criarItem(); });
 
   // Preenche rua, bairro, cidade e UF pelo CEP, como na tela de Meus dados.
+  // Sem nota, o CEP de destino da cotação é o mesmo CEP informado na DC-e.
+  $("dce-cep").addEventListener("input", function () {
+    if (!dadosNfe) $("cepDestino").value = $("dce-cep").value.trim();
+  });
+
   $("dce-cep").addEventListener("blur", function () {
+    if (!dadosNfe) buscarDica("cepDestino", "dicaDestino");
     var cep = $("dce-cep").value.replace(/\D/g, "");
     if (cep.length !== 8) return;
     fetch("https://viacep.com.br/ws/" + cep + "/json/").then(function (r) { return r.json(); }).then(function (d) {
