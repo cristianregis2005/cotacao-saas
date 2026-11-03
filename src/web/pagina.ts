@@ -445,6 +445,11 @@ export const PAGINA_HTML = `<!doctype html>
         $("cepDestino").value = dadosNfe.destinatario.postalCode;
         buscarDica("cepDestino", "dicaDestino");
       }
+      // Origem = endereço do remetente da nota (de onde a mercadoria sai).
+      if (dadosNfe.remetente.postalCode) {
+        $("cepOrigem").value = dadosNfe.remetente.postalCode;
+        buscarDica("cepOrigem", "dicaOrigem");
+      }
       if (dadosNfe.valorDeclarado != null) $("valor").value = String(dadosNfe.valorDeclarado);
       if (dadosNfe.pesoNota > 0 && !$("peso").value) $("peso").value = String(dadosNfe.pesoNota);
       $("msg-carrinho").className = "msg ok";
