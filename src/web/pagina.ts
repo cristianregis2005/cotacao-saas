@@ -36,7 +36,8 @@ export const PAGINA_HTML = `<!doctype html>
   td.preco, th.preco { text-align: right; }
   tr.melhor td { font-weight: 700; color: var(--ok); }
   .avisos { color: var(--suave); font-size: 0.9rem; margin: 10px 0 0; padding-left: 18px; }
-  .dce-item { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+  .dce-item { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: start; margin-bottom: 10px; }
+  .dce-item .icone-acao { margin-top: 22px; }
   .dce-item label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
   .dce-cabecalho { display: flex; justify-content: space-between; align-items: center; }
   .dce-cabecalho h3 { margin: 0; }
