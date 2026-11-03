@@ -44,7 +44,7 @@ describe("cotarTodas", () => {
   it("sem nenhum token do cliente, devolve um aviso por transportadora", async () => {
     const r = await cotarTodas(entrada, {});
     expect(r.cotacoes).toEqual([]);
-    expect(r.avisos).toHaveLength(3);
+    expect(r.avisos).toHaveLength(4);
     expect(r.avisos[0]).toContain("Minha conta");
   });
 
@@ -61,7 +61,7 @@ describe("cotarTodas", () => {
       superfrete: { token: "t", contato: "a@b.com" },
     });
     expect(r.cotacoes.map((c) => c.origem)).toEqual(["Frenet"]);
-    expect(r.avisos.length).toBe(2);
+    expect(r.avisos.length).toBe(3); // Envia sem token + Melhor Envio e SuperFrete com erro
   });
 });
 
