@@ -38,7 +38,10 @@ export const PAGINA_HTML = `<!doctype html>
   .avisos { color: var(--suave); font-size: 0.9rem; margin: 10px 0 0; padding-left: 18px; }
   .dce-item { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
   .dce-item label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
-  .icone-acao { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .dce-cabecalho { display: flex; justify-content: space-between; align-items: center; }
+  .dce-cabecalho h3 { margin: 0; }
+  .dce-item input { height: 40px; box-sizing: border-box; }
+  .icone-acao { width: 40px; height: 40px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; }
   .icone-acao svg { width: 20px; height: 20px; }
   @media (max-width: 600px) {
     .dce-item { grid-template-columns: 1fr 1fr 40px; }
@@ -115,9 +118,12 @@ export const PAGINA_HTML = `<!doctype html>
         <label>UF <input id="dce-uf" maxlength="2" autocomplete="off"></label>
         <label>Telefone com DDD <input id="dce-telefone" inputmode="numeric"></label>
       </div>
-      <h3>Produtos</h3>
+      <div class="dce-cabecalho">
+        <h3>Produtos</h3>
+        <button type="button" class="secundario icone-acao" id="btn-add-item" aria-label="Adicionar produto" title="Adicionar produto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
       <div id="dce-itens"></div>
-      <p><button type="button" class="secundario icone-acao" id="btn-add-item" aria-label="Adicionar produto" title="Adicionar produto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button> <span class="suave" id="dce-total"></span></p>
+      <p class="suave" id="dce-total"></p>
     </section>
 
     <form id="form-cotacao" class="cartao">
