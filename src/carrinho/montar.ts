@@ -58,7 +58,7 @@ export function montarPedidoSuperFrete(d: DadosNfe, volume: Volume, servico: Ser
     to: para,
     service: Number(servico.codigo),
     volumes: { height: volume.altura, width: volume.largura, length: volume.comprimento, weight: volume.peso },
-    options: { receipt: false, own_hand: false, invoice: { number: d.chave } },
+    options: { receipt: false, own_hand: false, ...(d.semNota ? {} : { invoice: { number: d.chave } }) },
     platform: "cotacao-fretes",
   };
 }
@@ -118,7 +118,7 @@ export function montarCarrinhoME(d: DadosNfe, volume: Volume, servico: ServicoEs
       own_hand: false,
       reverse: false,
       non_commercial: false,
-      invoice: { key: d.chave }, // chave da NF-e, obrigatória para envio comercial
+      ...(d.semNota ? {} : { invoice: { key: d.chave } }), // chave da NF-e (só quando há nota)
     },
   };
 }
@@ -177,14 +177,18 @@ export function montarPedidoFrenet(d: DadosNfe, volume: Volume, servico: Servico
       Items: [item],
       From: pessoaFrenet(d.remetente),
       To: pessoaFrenet(d.destinatario),
-      Invoice: {
-        Value: valor,
-        Key: d.chave,
-        Number: d.nota.numero,
-        Series: d.nota.serie,
-        Date: d.nota.data,
-        CFOP: d.nota.cfop,
-      },
+      ...(d.semNota
+        ? {}
+        : {
+            Invoice: {
+              Value: valor,
+              Key: d.chave,
+              Number: d.nota.numero,
+              Series: d.nota.serie,
+              Date: d.nota.data,
+              CFOP: d.nota.cfop,
+            },
+          }),
     },
     Volumes: {
       VolumeId: "1",

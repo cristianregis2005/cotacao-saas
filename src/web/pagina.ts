@@ -92,6 +92,26 @@ export const PAGINA_HTML = `<!doctype html>
       </div>
     </section>
 
+    <section class="cartao" id="secao-dce">
+      <h2>Sem nota fiscal (DC-e)</h2>
+      <p class="suave">Só para pessoa física (CPF no cadastro). Preencha o destinatário e os produtos com os valores reais. A declaração segue junto com o pedido.</p>
+      <div class="grade">
+        <label>Nome do destinatário <input id="dce-nome" autocomplete="off"></label>
+        <label>CPF ou CNPJ do destinatário <input id="dce-documento" inputmode="numeric"></label>
+        <label>CEP <input id="dce-cep" inputmode="numeric"><small class="dica" id="dicaDce"></small></label>
+        <label>Rua <input id="dce-logradouro" autocomplete="off"></label>
+        <label>Número <input id="dce-numero" autocomplete="off"></label>
+        <label>Complemento <input id="dce-complemento" autocomplete="off"></label>
+        <label>Bairro <input id="dce-bairro" autocomplete="off"></label>
+        <label>Cidade <input id="dce-cidade" autocomplete="off"></label>
+        <label>UF <input id="dce-uf" maxlength="2" autocomplete="off"></label>
+        <label>Telefone com DDD <input id="dce-telefone" inputmode="numeric"></label>
+      </div>
+      <h3>Produtos</h3>
+      <div id="dce-itens"></div>
+      <p><button type="button" class="secundario" id="btn-add-item">Adicionar produto</button> <span class="suave" id="dce-total"></span></p>
+    </section>
+
     <form id="form-cotacao" class="cartao">
       <div class="cabecalho-recolhivel">
         <h2>Dados do envio</h2>
@@ -276,7 +296,7 @@ export const PAGINA_HTML = `<!doctype html>
         botaoCarrinho.type = "button";
         botaoCarrinho.className = "secundario";
         botaoCarrinho.textContent = "Enviar ao carrinho";
-        botaoCarrinho.disabled = !dadosNfe;
+        botaoCarrinho.disabled = false; // sem nota, o envio usa os dados da DC-e
         botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
         acao.appendChild(botaoCarrinho);
       }
@@ -436,6 +456,7 @@ export const PAGINA_HTML = `<!doctype html>
         return;
       }
       dadosNfe = r.dados.dados;
+      atualizarDce();
       $("nfe-resumo").textContent = "Nota " + (dadosNfe.nota.numero || "-") + " · remetente: " + dadosNfe.remetente.name +
         " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-") +
         " · frete na nota: " + (dadosNfe.valorFrete > 0 ? reais(dadosNfe.valorFrete) : "não informado");
@@ -462,7 +483,18 @@ export const PAGINA_HTML = `<!doctype html>
   });
 
   function enviarCarrinho(c, botao) {
-    if (!dadosNfe || !ultimaEntrada) return;
+    if (!ultimaEntrada) return;
+    var dados = dadosNfe;
+    if (!dados) {
+      dados = montarDce();
+      if (typeof dados === "string") {
+        $("retorno").hidden = false;
+        $("btn-liberar").hidden = true;
+        $("msg-pedido").className = "msg erro";
+        texto($("msg-pedido"), dados);
+        return;
+      }
+    }
     var pergunta = "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\\n\\n" +
       "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
     if (!confirm(pergunta)) return;
@@ -473,7 +505,7 @@ export const PAGINA_HTML = `<!doctype html>
     $("msg-pedido").className = "msg";
     texto($("msg-pedido"), "Criando o pedido...");
     var corpo = {
-      dados: dadosNfe,
+      dados: dados,
       volume: ultimaEntrada,
       servico: {
         origem: c.origem, transportadora: c.transportadora, servico: c.servico, codigo: c.codigo,
@@ -486,7 +518,7 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-pedido").className = "msg erro";
         texto($("msg-pedido"), r.dados.erro || "Não consegui criar o pedido.");
-        if (r.status === 409) {
+        if (r.status === 409 && dadosNfe) {
           pendenteLiberar = { origem: c.origem, chave: dadosNfe.chave };
           $("btn-liberar").hidden = false;
         }
@@ -496,6 +528,7 @@ export const PAGINA_HTML = `<!doctype html>
       texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
         "). Pague no painel da transportadora.");
       zerarDados();
+      limparDce();
       $("arquivoNfe").value = "";
     }).catch(function () {
       botao.disabled = false;
@@ -554,6 +587,7 @@ export const PAGINA_HTML = `<!doctype html>
     $("dicaDestino").className = "dica";
     $("dicaDestino").textContent = "";
     dadosNfe = null;
+    atualizarDce();
     ultimaEntrada = null;
     resultadoAtual = [];
     $("resultado").hidden = true;
@@ -576,6 +610,122 @@ export const PAGINA_HTML = `<!doctype html>
       : (dadosNfe ? "A nota não informa valor de frete." : "");
   }
 
+  // ---- Envio sem nota (DC-e) ----
+  var CAMPOS_DCE = ["dce-nome", "dce-documento", "dce-cep", "dce-logradouro", "dce-numero", "dce-complemento", "dce-bairro", "dce-cidade", "dce-uf", "dce-telefone"];
+
+  function atualizarDce() {
+    $("secao-dce").hidden = !!dadosNfe;
+  }
+
+  function criarItem() {
+    var linha = document.createElement("div");
+    linha.className = "grade dce-item";
+    var campos = [["descricao", "Produto", "text"], ["quantidade", "Quantidade", "numeric"], ["valor", "Valor unitário (R$)", "decimal"]];
+    campos.forEach(function (d) {
+      var rotulo = document.createElement("label");
+      rotulo.appendChild(document.createTextNode(d[1] + " "));
+      var campo = document.createElement("input");
+      campo.type = "text";
+      campo.setAttribute("data-campo", d[0]);
+      campo.setAttribute("inputmode", d[2]);
+      campo.addEventListener("input", atualizarTotalDce);
+      rotulo.appendChild(campo);
+      linha.appendChild(rotulo);
+    });
+    var remover = document.createElement("button");
+    remover.type = "button";
+    remover.className = "secundario";
+    remover.textContent = "Remover";
+    remover.addEventListener("click", function () {
+      linha.parentNode.removeChild(linha);
+      atualizarTotalDce();
+    });
+    linha.appendChild(remover);
+    $("dce-itens").appendChild(linha);
+  }
+
+  function lerItensDce() {
+    var linhas = $("dce-itens").querySelectorAll(".dce-item");
+    var itens = [];
+    for (var i = 0; i < linhas.length; i++) {
+      var valores = {};
+      var entradas = linhas[i].querySelectorAll("input");
+      for (var j = 0; j < entradas.length; j++) valores[entradas[j].getAttribute("data-campo")] = entradas[j].value.trim();
+      itens.push({
+        descricao: valores.descricao,
+        quantidade: Number(String(valores.quantidade).replace(",", ".")),
+        valorUnitario: Number(String(valores.valor).replace(",", "."))
+      });
+    }
+    return itens;
+  }
+
+  function totalDce() {
+    return lerItensDce().reduce(function (soma, i) {
+      return i.quantidade > 0 && i.valorUnitario > 0 ? soma + i.quantidade * i.valorUnitario : soma;
+    }, 0);
+  }
+
+  // O total dos produtos vira o valor declarado da cotação (quando não há nota).
+  function atualizarTotalDce() {
+    var total = totalDce();
+    texto($("dce-total"), total > 0 ? "Total declarado: " + reais(total) : "");
+    if (!dadosNfe && total > 0) $("valor").value = String(Math.round(total * 100) / 100);
+  }
+
+  function montarDce() {
+    var itens = lerItensDce();
+    if (!itens.length) return "Adicione pelo menos um produto na DC-e.";
+    return {
+      semNota: true,
+      chave: "",
+      destinatario: {
+        name: $("dce-nome").value.trim(),
+        document: $("dce-documento").value.trim(),
+        stateRegister: "",
+        street: $("dce-logradouro").value.trim(),
+        number: $("dce-numero").value.trim(),
+        complement: $("dce-complemento").value.trim(),
+        district: $("dce-bairro").value.trim(),
+        city: $("dce-cidade").value.trim(),
+        state: $("dce-uf").value.trim(),
+        postalCode: $("dce-cep").value.trim(),
+        phone: $("dce-telefone").value.trim()
+      },
+      itens: itens,
+      valorDeclarado: totalDce(),
+      pesoNota: 0,
+      valorFrete: 0,
+      nota: { numero: "", serie: "", data: "", cfop: "" },
+      remetente: null
+    };
+  }
+
+  function limparDce() {
+    CAMPOS_DCE.forEach(function (id) { $(id).value = ""; });
+    $("dce-itens").textContent = "";
+    texto($("dce-total"), "");
+    texto($("dicaDce"), "");
+    criarItem();
+  }
+
+  $("btn-add-item").addEventListener("click", function () { criarItem(); });
+
+  // Preenche rua, bairro, cidade e UF pelo CEP, como na tela de Meus dados.
+  $("dce-cep").addEventListener("blur", function () {
+    var cep = $("dce-cep").value.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    fetch("https://viacep.com.br/ws/" + cep + "/json/").then(function (r) { return r.json(); }).then(function (d) {
+      if (d.erro) { texto($("dicaDce"), "CEP não encontrado."); return; }
+      texto($("dicaDce"), "");
+      $("dce-logradouro").value = d.logradouro || "";
+      $("dce-bairro").value = d.bairro || "";
+      $("dce-cidade").value = d.localidade || "";
+      $("dce-uf").value = d.uf || "";
+    }).catch(function () {});
+  });
+
+  criarItem();
   iniciar();
 })();
 </script>
