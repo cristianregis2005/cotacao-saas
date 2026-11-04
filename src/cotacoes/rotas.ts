@@ -114,5 +114,32 @@ cotacaoRotas.post("/todas", async (c) => {
   }
 
   const resultado = await cotarTodas(entrada, credenciais as Parameters<typeof cotarTodas>[1], extras);
+
+  // Histórico da cotação. Se o registro falhar, a cotação continua funcionando.
+  const precos = resultado.cotacoes.map((x) => x.preco);
+  try {
+    await c.env.DB.prepare(
+      "INSERT INTO historico_cotacoes (id, usuario_id, cep_origem, cep_destino, peso, comprimento, largura, altura, valor_declarado, opcoes, menor_preco, avisos, com_nota) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+      .bind(
+        crypto.randomUUID(),
+        usuario.id,
+        digitos(entrada.cepOrigem),
+        digitos(entrada.cepDestino),
+        entrada.peso,
+        entrada.comprimento,
+        entrada.largura,
+        entrada.altura,
+        entrada.valor ?? null,
+        precos.length,
+        precos.length ? Math.min(...precos) : null,
+        resultado.avisos.length,
+        dest ? 1 : 0,
+      )
+      .run();
+  } catch (exc) {
+    console.log("[historico] falha ao registrar cotação: " + String(exc));
+  }
+
   return c.json({ ...resultado, uso: { usadas: situacao.usadas + 1, limite: situacao.limite } });
 });
