@@ -114,6 +114,7 @@ contaRotas.delete("/", async (c) => {
     c.env.DB.prepare("DELETE FROM sessoes WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM codigos_login WHERE email = ?").bind(usuario.email),
     c.env.DB.prepare("DELETE FROM cotacoes_realizadas WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM historico_cotacoes WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM pedidos_carrinho WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM assinaturas WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("UPDATE identidades SET usuario_id = NULL WHERE usuario_id = ?").bind(id),
