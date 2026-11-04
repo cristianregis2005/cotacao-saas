@@ -62,6 +62,30 @@ export const ADMIN_HTML = `<!doctype html>
       <p class="msg" id="msg"></p>
     </div>
 
+    <div class="cartao" id="secao-historico">
+      <h2>Histórico de cotações</h2>
+      <form class="grade" id="form-historico">
+        <label>De
+          <input type="date" id="hist-inicio">
+        </label>
+        <label>Até
+          <input type="date" id="hist-fim">
+        </label>
+        <label>E-mail do cliente
+          <input id="hist-email" placeholder="parte do e-mail">
+        </label>
+        <div>
+          <button type="submit" id="btn-filtrar-historico">Filtrar</button>
+          <button type="button" class="secundario" id="btn-limpar-historico">Limpar</button>
+        </div>
+      </form>
+      <p class="msg" id="msg-historico"></p>
+      <table>
+        <thead><tr><th>Data (UTC)</th><th>Cliente</th><th>Origem</th><th>Destino</th><th>Peso</th><th>Medidas</th><th>Valor declarado</th><th>Opções</th><th>Menor preço</th><th>Avisos</th><th>Nota fiscal</th></tr></thead>
+        <tbody id="linhas-historico"></tbody>
+      </table>
+    </div>
+
     <section class="cartao" id="painel-tokens" hidden>
       <div class="linha">
         <h2 id="titulo-tokens">Tokens</h2>
@@ -415,6 +439,73 @@ export const ADMIN_HTML = `<!doctype html>
     return bloco;
   }
 
+  // ---- Histórico de cotações ----
+
+  function formatarDataHora(texto) {
+    if (!texto || texto.length < 16) return texto || "-";
+    var p = texto.slice(0, 10).split("-");
+    return p[2] + "/" + p[1] + "/" + p[0] + " " + texto.slice(11, 16);
+  }
+
+  function formatarCep(c) {
+    return c && c.length === 8 ? c.slice(0, 5) + "-" + c.slice(5) : (c || "-");
+  }
+
+  function carregarHistorico() {
+    var params = [];
+    var inicio = $("hist-inicio").value;
+    var fim = $("hist-fim").value;
+    var email = $("hist-email").value.trim();
+    if (inicio) params.push("inicio=" + encodeURIComponent(inicio));
+    if (fim) params.push("fim=" + encodeURIComponent(fim));
+    if (email) params.push("email=" + encodeURIComponent(email));
+    var caminho = "/api/admin/historico" + (params.length ? "?" + params.join("&") : "");
+
+    $("msg-historico").className = "msg";
+    $("msg-historico").textContent = "Carregando...";
+    return api(caminho).then(function (r) {
+      var corpo = $("linhas-historico");
+      corpo.textContent = "";
+      if (!r.ok) {
+        $("msg-historico").className = "msg erro";
+        $("msg-historico").textContent = r.dados.erro || "Não consegui carregar o histórico.";
+        return;
+      }
+      var lista = r.dados.historico;
+      var aviso = lista.length >= 300 ? " Mostrando as 300 mais recentes. Use os filtros para restringir." : "";
+      $("msg-historico").className = "msg";
+      $("msg-historico").textContent = (lista.length === 0 ? "Nenhuma cotação encontrada." : lista.length + (lista.length === 1 ? " cotação encontrada." : " cotações encontradas.")) + aviso;
+
+      lista.forEach(function (h) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(formatarDataHora(h.criado_em)));
+        tr.appendChild(celula(h.email + (h.nome ? " · " + h.nome : "")));
+        tr.appendChild(celula(formatarCep(h.cep_origem)));
+        tr.appendChild(celula(formatarCep(h.cep_destino)));
+        tr.appendChild(celula(h.peso + " kg"));
+        tr.appendChild(celula(h.comprimento + " × " + h.largura + " × " + h.altura + " cm"));
+        tr.appendChild(celula(h.valor_declarado ? reais(Math.round(h.valor_declarado * 100)) : "-"));
+        tr.appendChild(celula(String(h.opcoes)));
+        tr.appendChild(celula(h.menor_preco == null ? "-" : reais(Math.round(h.menor_preco * 100))));
+        tr.appendChild(celula(String(h.avisos)));
+        tr.appendChild(celula(h.com_nota ? "Sim" : "Não (DC-e)"));
+        corpo.appendChild(tr);
+      });
+    });
+  }
+
+  $("form-historico").addEventListener("submit", function (e) {
+    e.preventDefault();
+    carregarHistorico();
+  });
+
+  $("btn-limpar-historico").addEventListener("click", function () {
+    $("hist-inicio").value = "";
+    $("hist-fim").value = "";
+    $("hist-email").value = "";
+    carregarHistorico();
+  });
+
   function carregar() {
     return Promise.all([api("/api/admin/usuarios"), api("/api/admin/planos")]).then(function (res) {
       if (!res[0].ok || !res[1].ok) { acessoNegado("Não consegui carregar os dados."); return; }
@@ -422,6 +513,7 @@ export const ADMIN_HTML = `<!doctype html>
       $("secao").hidden = false;
       desenharPlanos();
       desenharUsuarios(res[0].dados.usuarios);
+      carregarHistorico();
     });
   }
 

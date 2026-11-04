@@ -23,6 +23,37 @@ adminRotas.get("/usuarios", async (c) => {
   return c.json({ usuarios: results });
 });
 
+// Histórico de cotações de todos os clientes. Filtros opcionais: inicio, fim (AAAA-MM-DD) e email.
+adminRotas.get("/historico", async (c) => {
+  const inicio = c.req.query("inicio") ?? "";
+  const fim = c.req.query("fim") ?? "";
+  const email = (c.req.query("email") ?? "").trim().slice(0, 120);
+  const data = /^\d{4}-\d{2}-\d{2}$/;
+  if ((inicio && !data.test(inicio)) || (fim && !data.test(fim))) {
+    return c.json({ erro: "Datas inválidas. Use o formato AAAA-MM-DD." }, 400);
+  }
+
+  const condicoes: string[] = [];
+  const valores: (string | number)[] = [];
+  if (inicio) { condicoes.push("date(h.criado_em) >= ?"); valores.push(inicio); }
+  if (fim) { condicoes.push("date(h.criado_em) <= ?"); valores.push(fim); }
+  if (email) { condicoes.push("lower(u.email) LIKE ?"); valores.push("%" + email.toLowerCase() + "%"); }
+  const onde = condicoes.length ? "WHERE " + condicoes.join(" AND ") : "";
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT h.id, h.criado_em, u.email, u.nome, h.cep_origem, h.cep_destino, h.peso, h.comprimento,
+            h.largura, h.altura, h.valor_declarado, h.opcoes, h.menor_preco, h.avisos, h.com_nota
+       FROM historico_cotacoes h
+       JOIN usuarios u ON u.id = h.usuario_id
+       ${onde}
+       ORDER BY h.criado_em DESC
+       LIMIT 300`,
+  )
+    .bind(...valores)
+    .all();
+  return c.json({ historico: results });
+});
+
 adminRotas.get("/planos", async (c) => {
   const { results } = await c.env.DB.prepare(
     "SELECT id, nome, preco_centavos, limite_cotacoes_mes FROM planos ORDER BY preco_centavos, id",
