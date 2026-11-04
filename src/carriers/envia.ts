@@ -1,4 +1,5 @@
 // Cotação de frete na Envia (POST /ship/rate/). Porte de envia_cotacao.py. Só consulta preços: não gera etiqueta nem cobra.
+import { motivoAmigavel } from "../erros";
 // Exige endereço completo de origem e destino, por isso a cotação usa o cadastro do cliente e a nota fiscal.
 
 export const ENVIA_BASE = "https://api.envia.com";
@@ -146,7 +147,10 @@ export async function cotarEnvia(
   const cotacoes: CotacaoEnvia[] = [];
   const avisos: string[] = [];
   for (const { transportadora, resultado } of resultados) {
-    if (resultado.erro) avisos.push(`Envia (${transportadora}): ${resultado.erro}`);
+    if (resultado.erro) {
+      console.log(`[cotacao] Envia (${transportadora}): ${resultado.erro}`);
+      avisos.push(`Envia (${transportadora}): ${motivoAmigavel("Envia", resultado.erro)}`);
+    }
     else cotacoes.push(...(resultado.cotacoes ?? []));
   }
   return { cotacoes: cotacoes.sort((a, b) => a.preco - b.preco), avisos };

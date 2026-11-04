@@ -1,6 +1,7 @@
 // Envia o pedido ao carrinho de cada transportadora. Nada é pago aqui.
 // Não repete a chamada em caso de erro de conexão: o pedido pode ter sido criado.
 import { CarrinhoError } from "./montar";
+import { recusaCarrinho } from "../erros";
 
 export type TransportadoraCarrinho = "superfrete" | "frenet" | "melhorenvio";
 
@@ -25,8 +26,9 @@ async function chamar(fetchFn: typeof fetch, url: string, init: RequestInit, rot
   try {
     return await fetchFn(url, init);
   } catch (exc) {
+    console.log("[carrinho] falha de conexão com " + rotulo + ": " + String(exc));
     throw new CarrinhoError(
-      `Falha de conexão com ${rotulo}. O pedido pode ter sido criado: confira no painel de ${rotulo} antes de tentar de novo. Detalhe: ${String(exc)}`,
+      "Não consegui falar com " + rotulo + " agora. Confira no painel se o pedido foi criado antes de tentar de novo.",
     );
   }
 }
@@ -34,12 +36,13 @@ async function chamar(fetchFn: typeof fetch, url: string, init: RequestInit, rot
 async function lerJson(resp: Response, rotulo: string): Promise<Record<string, unknown>> {
   if (!resp.ok) {
     const corpo = (await resp.text()).slice(0, 500);
-    throw new CarrinhoError(`${rotulo} recusou o pedido (HTTP ${resp.status}): ${corpo}`);
+    throw new CarrinhoError(recusaCarrinho(rotulo, resp.status, corpo));
   }
   try {
     return (await resp.json()) as Record<string, unknown>;
   } catch {
-    throw new CarrinhoError(`${rotulo} respondeu, mas a resposta não é JSON válido.`);
+    console.log("[carrinho] " + rotulo + " respondeu sem JSON válido");
+    throw new CarrinhoError("A " + rotulo + " não respondeu como esperado. Tente de novo.");
   }
 }
 
@@ -71,7 +74,7 @@ export async function criarNoCarrinho(
       },
       "SuperFrete",
     );
-    const j = await lerJson(resp, "A SuperFrete");
+    const j = await lerJson(resp, "SuperFrete");
     return { codigo: String(j.id ?? ""), preco: numeroOuUndefined(j.price), status: String(j.status ?? "pending") };
   }
 
@@ -93,9 +96,9 @@ export async function criarNoCarrinho(
     );
     if (resp.status !== 200 && resp.status !== 201) {
       const corpo = (await resp.text()).slice(0, 500);
-      throw new CarrinhoError(`O Melhor Envio recusou o envio (HTTP ${resp.status}): ${corpo}`);
+      throw new CarrinhoError(recusaCarrinho("Melhor Envio", resp.status, corpo));
     }
-    const j = await lerJson(resp, "O Melhor Envio");
+    const j = await lerJson(resp, "Melhor Envio");
     return {
       codigo: String(j.protocol ?? j.id ?? ""),
       preco: numeroOuUndefined(j.price),
@@ -124,7 +127,7 @@ export async function criarNoCarrinho(
   );
   if (!resp.ok) {
     const corpo = (await resp.text()).slice(0, 500);
-    throw new CarrinhoError(`A Frenet recusou o pedido (HTTP ${resp.status}): ${corpo}`);
+    throw new CarrinhoError(recusaCarrinho("Frenet", resp.status, corpo));
   }
   return { codigo: chave, status: "enviado" };
 }

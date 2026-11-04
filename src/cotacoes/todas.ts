@@ -7,6 +7,7 @@ import { cotarSuperFrete } from "../carriers/superfrete";
 import { cotarFrenet } from "../carriers/frenet";
 import { cotarMelhorEnvio } from "../carriers/melhorenvio";
 import { cotarEnvia, type EnderecoEnvia } from "../carriers/envia";
+import { motivoAmigavel } from "../erros";
 
 export interface CotacaoUnificada {
   origem: "SuperFrete" | "Frenet" | "Melhor Envio" | "Envia";
@@ -114,7 +115,8 @@ export async function cotarTodas(
       cotacoes.push(...r.value);
     } else {
       const motivo = r.reason instanceof Error ? r.reason.message : String(r.reason);
-      avisos.push(tarefas[i].nome + ": " + motivo);
+      console.log("[cotacao] " + tarefas[i].nome + ": " + motivo);
+      avisos.push(tarefas[i].nome + ": " + motivoAmigavel(tarefas[i].nome, motivo));
     }
   });
 
