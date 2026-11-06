@@ -86,6 +86,52 @@ export const ADMIN_HTML = `<!doctype html>
       </table>
     </div>
 
+    <section class="cartao" id="painel-dados" hidden>
+      <div class="linha">
+        <h2 id="titulo-dados">Dados do cliente</h2>
+        <button type="button" class="secundario" id="btn-fechar-dados">Fechar</button>
+      </div>
+      <form id="form-dados">
+        <div class="grade">
+          <label>Nome
+            <input id="dados-nome" required maxlength="120">
+          </label>
+          <label>Empresa (opcional)
+            <input id="dados-empresa" maxlength="120">
+          </label>
+          <label>CPF ou CNPJ
+            <input id="dados-documento" inputmode="numeric" required>
+          </label>
+          <label>Telefone com DDD
+            <input id="dados-telefone" inputmode="tel" required>
+          </label>
+          <label>CEP de origem
+            <input id="dados-cep" inputmode="numeric" required>
+          </label>
+          <label>UF
+            <input id="dados-uf" maxlength="2" required>
+          </label>
+          <label>Logradouro
+            <input id="dados-logradouro" maxlength="120" required>
+          </label>
+          <label>Número
+            <input id="dados-numero" maxlength="20" required>
+          </label>
+          <label>Complemento (opcional)
+            <input id="dados-complemento" maxlength="60">
+          </label>
+          <label>Bairro
+            <input id="dados-bairro" maxlength="80" required>
+          </label>
+          <label>Cidade
+            <input id="dados-cidade" maxlength="80" required>
+          </label>
+        </div>
+        <button type="submit" id="btn-salvar-dados">Salvar dados</button>
+        <p class="msg" id="msg-dados"></p>
+      </form>
+    </section>
+
     <section class="cartao" id="painel-tokens" hidden>
       <div class="linha">
         <h2 id="titulo-tokens">Tokens</h2>
@@ -202,7 +248,14 @@ export const ADMIN_HTML = `<!doctype html>
       tokens.textContent = "Tokens";
       tokens.style.marginLeft = "6px";
       tokens.addEventListener("click", function () { abrirTokens(u); });
+      var dados = document.createElement("button");
+      dados.type = "button";
+      dados.className = "secundario";
+      dados.textContent = "Dados";
+      dados.style.marginLeft = "6px";
+      dados.addEventListener("click", function () { abrirDados(u); });
       tdAcao.appendChild(botao);
+      tdAcao.appendChild(dados);
       tdAcao.appendChild(tokens);
       tr.appendChild(tdAcao);
       corpo.appendChild(tr);
@@ -278,6 +331,63 @@ export const ADMIN_HTML = `<!doctype html>
       if (!r.ok) { $("msg-plano").textContent = r.dados.erro || "Não consegui salvar o plano."; return; }
       $("msg-plano").textContent = "Plano salvo.";
       limparFormulario();
+      carregar();
+    });
+  });
+
+  // ---- Dados cadastrais do cliente selecionado ----
+
+  var CAMPOS_DADOS = {
+    nome: "dados-nome",
+    empresa: "dados-empresa",
+    documento: "dados-documento",
+    telefone: "dados-telefone",
+    origem_cep: "dados-cep",
+    origem_logradouro: "dados-logradouro",
+    origem_numero: "dados-numero",
+    origem_complemento: "dados-complemento",
+    origem_bairro: "dados-bairro",
+    origem_cidade: "dados-cidade",
+    origem_uf: "dados-uf"
+  };
+  var dadosDoCliente = null;
+
+  function mostrarMsgDados(texto, tipo) {
+    $("msg-dados").className = "msg " + (tipo || "");
+    $("msg-dados").textContent = texto;
+  }
+
+  function abrirDados(u) {
+    dadosDoCliente = u.id;
+    $("titulo-dados").textContent = "Dados de " + u.email;
+    $("painel-dados").hidden = false;
+    $("painel-dados").scrollIntoView({ behavior: "smooth" });
+    mostrarMsgDados("Carregando...");
+    api("/api/admin/usuarios/" + encodeURIComponent(u.id) + "/dados").then(function (r) {
+      if (dadosDoCliente !== u.id) return;
+      if (!r.ok) { mostrarMsgDados(r.dados.erro || "Não consegui carregar os dados.", "erro"); return; }
+      var d = r.dados.dados;
+      Object.keys(CAMPOS_DADOS).forEach(function (campo) { $(CAMPOS_DADOS[campo]).value = d[campo] || ""; });
+      mostrarMsgDados("");
+    });
+  }
+
+  $("btn-fechar-dados").addEventListener("click", function () {
+    dadosDoCliente = null;
+    $("painel-dados").hidden = true;
+  });
+
+  $("form-dados").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!dadosDoCliente) return;
+    var id = dadosDoCliente;
+    var corpo = {};
+    Object.keys(CAMPOS_DADOS).forEach(function (campo) { corpo[campo] = $(CAMPOS_DADOS[campo]).value.trim(); });
+    $("btn-salvar-dados").disabled = true;
+    api("/api/admin/usuarios/" + encodeURIComponent(id) + "/dados", corpo, "PUT").then(function (r) {
+      $("btn-salvar-dados").disabled = false;
+      if (!r.ok) { mostrarMsgDados(r.dados.erro || "Não consegui salvar os dados.", "erro"); return; }
+      mostrarMsgDados("Dados salvos.", "ok");
       carregar();
     });
   });

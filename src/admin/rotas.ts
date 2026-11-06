@@ -6,6 +6,8 @@ import { usuarioDaSessao } from "../auth/rotas";
 import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "../contas/tokens";
 import { validarPlano } from "./planos";
 import { registrarAuditoria } from "./auditoria";
+import { validarDados } from "../contas/dados";
+import { garantirFranquiaUnica } from "../auth/identidade";
 
 export const adminRotas = new Hono<{ Bindings: Env }>();
 
@@ -106,6 +108,44 @@ adminRotas.post("/usuarios/:id/plano", async (c) => {
   await c.env.DB.prepare("UPDATE usuarios SET plano_id = ? WHERE id = ?")
     .bind(planoId, c.req.param("id"))
     .run();
+  return c.json({ ok: true });
+});
+
+// ---- Dados cadastrais de um cliente (o administrador pode corrigir, com a mesma validação do cliente) ----
+
+adminRotas.get("/usuarios/:id/dados", async (c) => {
+  const id = c.req.param("id");
+  if (!(await clienteExiste(c.env.DB, id))) return c.json({ erro: "Usuário não encontrado." }, 404);
+  const linha = await c.env.DB.prepare(
+    "SELECT email, nome, empresa, documento, telefone, origem_cep, origem_logradouro, origem_numero, origem_complemento, origem_bairro, origem_cidade, origem_uf FROM usuarios WHERE id = ?",
+  )
+    .bind(id)
+    .first();
+  return c.json({ dados: linha ?? {} });
+});
+
+adminRotas.put("/usuarios/:id/dados", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+
+  const id = c.req.param("id");
+  if (!(await clienteExiste(c.env.DB, id))) return c.json({ erro: "Usuário não encontrado." }, 404);
+
+  const corpo = (await c.req.json<Record<string, unknown>>().catch(() => null)) ?? {};
+  const r = validarDados(corpo);
+  if ("erro" in r) return c.json({ erro: r.erro }, 400);
+  const d = r.valor;
+
+  await c.env.DB.prepare(
+    "UPDATE usuarios SET nome = ?, empresa = ?, documento = ?, telefone = ?, origem_cep = ?, origem_logradouro = ?, origem_numero = ?, origem_complemento = ?, origem_bairro = ?, origem_cidade = ?, origem_uf = ? WHERE id = ?",
+  )
+    .bind(
+      d.nome, d.empresa, d.documento, d.telefone, d.origem_cep, d.origem_logradouro,
+      d.origem_numero, d.origem_complemento, d.origem_bairro, d.origem_cidade, d.origem_uf, id,
+    )
+    .run();
+  await garantirFranquiaUnica(c.env.DB, c.env.SEGREDO_LOGIN, id, "documento", d.documento);
+  await registrarAuditoria(c.env.DB, admin.id, id, "dados_editados", null);
   return c.json({ ok: true });
 });
 
