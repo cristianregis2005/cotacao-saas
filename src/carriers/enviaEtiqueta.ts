@@ -34,7 +34,7 @@ export interface EtiquetaComprada {
 
 export type ResultadoEtiqueta =
   | { ok: true; etiqueta: EtiquetaComprada }
-  | { ok: false; status: number; corpo: string }; // status 0 = falha de conexão
+  | { ok: false; status: number; corpo: string; mensagem?: string }; // status 0 = falha de conexão
 
 type Registro = Record<string, unknown>;
 
@@ -92,9 +92,17 @@ export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: Opcoe
   const r = await chamar(`${opcoes.base}/ship/generate/`, corpo, opcoes);
   if (!r.ok) return r;
 
+  // A Envia pode responder 200 com erro no corpo (ex.: meta "error").
+  const erro = r.dados.error as Registro | undefined;
+  if (r.dados.meta === "error" || erro) {
+    const mensagem = String(erro?.message ?? erro?.description ?? "pedido sem detalhes");
+    console.log("[envia] generate recusado: " + JSON.stringify(r.dados).slice(0, 500));
+    return { ok: false, status: 200, corpo: JSON.stringify(r.dados).slice(0, 500), mensagem };
+  }
+
   const item = (Array.isArray(r.dados.data) ? r.dados.data[0] : undefined) as Registro | undefined;
   if (!item || !item.trackingNumber) {
-    return { ok: false, status: 200, corpo: JSON.stringify(r.dados).slice(0, 500) };
+    return { ok: false, status: 200, corpo: JSON.stringify(r.dados).slice(0, 500), mensagem: "a Envia não devolveu a etiqueta" };
   }
   const valor = Math.round(Number(item.totalPrice ?? 0) * 100) / 100;
   return {
