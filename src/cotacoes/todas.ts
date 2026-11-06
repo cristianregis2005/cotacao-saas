@@ -34,6 +34,7 @@ const semToken = (t: Transportadora) =>
 export interface ExtrasCotacao {
   enviaOrigem?: EnderecoEnvia | null; // cadastro do cliente
   enviaDestino?: EnderecoEnvia | null; // destinatário da nota fiscal
+  enviaBase?: string; // endereço da API da Envia (sandbox ou produção)
 }
 
 export async function cotarTodas(
@@ -98,7 +99,7 @@ export async function cotarTodas(
             largura: entrada.largura,
             altura: entrada.altura,
           },
-          { token: cred.token },
+          { token: cred.token, base: extras.enviaBase },
         );
         avisosEnvia.push(...r.avisos);
         return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, prazoTexto: c.prazoTexto, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));
