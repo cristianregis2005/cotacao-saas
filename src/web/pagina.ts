@@ -299,22 +299,13 @@ export const PAGINA_HTML = `<!doctype html>
       preco.textContent = reais(c.preco);
       tr.appendChild(preco);
       var acao = document.createElement("td");
-      if (c.origem === "Envia") {
-        var emBreve = document.createElement("button");
-        emBreve.type = "button";
-        emBreve.className = "secundario";
-        emBreve.textContent = "Em breve";
-        emBreve.disabled = true;
-        acao.appendChild(emBreve);
-      } else {
-        var botaoCarrinho = document.createElement("button");
-        botaoCarrinho.type = "button";
-        botaoCarrinho.className = "secundario";
-        botaoCarrinho.textContent = "Enviar ao carrinho";
-        botaoCarrinho.disabled = false; // sem nota, o envio usa os dados da DC-e
-        botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
-        acao.appendChild(botaoCarrinho);
-      }
+      var botaoCarrinho = document.createElement("button");
+      botaoCarrinho.type = "button";
+      botaoCarrinho.className = "secundario";
+      botaoCarrinho.textContent = c.origem === "Envia" ? "Comprar etiqueta" : "Enviar ao carrinho";
+      botaoCarrinho.disabled = false; // sem nota, o envio usa os dados da DC-e
+      botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
+      acao.appendChild(botaoCarrinho);
       tr.appendChild(acao);
       corpo.appendChild(tr);
     });
@@ -510,8 +501,11 @@ export const PAGINA_HTML = `<!doctype html>
         return;
       }
     }
-    var pergunta = "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\\n\\n" +
-      "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
+    var pergunta = c.origem === "Envia"
+      ? "Comprar a etiqueta na Envia (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\\n\\n" +
+        "O valor é debitado do seu saldo Envia agora. Se algo der errado, você pode cancelar a etiqueta aqui e o valor volta para o seu saldo."
+      : "Criar o pedido no carrinho da " + c.origem + " (" + (c.servico || "-") + ", " + reais(c.preco) + ")?\\n\\n" +
+        "O pedido fica aguardando pagamento no painel da transportadora. Nada é pago aqui.";
     if (!confirm(pergunta)) return;
     botao.disabled = true;
     $("retorno").hidden = false;
@@ -539,9 +533,13 @@ export const PAGINA_HTML = `<!doctype html>
         }
         return;
       }
-      $("msg-pedido").className = "msg ok";
-      texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
-        "). Pague no painel da transportadora.");
+      if (c.origem === "Envia") {
+        mostrarEtiquetaEnvia(r.dados);
+      } else {
+        $("msg-pedido").className = "msg ok";
+        texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
+          "). Pague no painel da transportadora.");
+      }
       zerarDados();
       limparDce();
       $("arquivoNfe").value = "";
@@ -549,6 +547,59 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       $("msg-pedido").className = "msg erro";
       texto($("msg-pedido"), "Sem conexão. Confira no painel da transportadora antes de tentar de novo.");
+    });
+  }
+
+  // ---- Etiqueta comprada na Envia: link para baixar e cancelamento ----
+
+  function mostrarEtiquetaEnvia(d) {
+    $("msg-pedido").className = "msg ok";
+    texto($("msg-pedido"), "Etiqueta comprada na Envia. Rastreio " + d.codigo + ". Debitado do seu saldo: " + reais(d.preco) + ".");
+    var area = document.getElementById("acoes-envia");
+    if (!area) {
+      area = document.createElement("div");
+      area.id = "acoes-envia";
+      area.style.marginTop = "10px";
+      $("retorno").appendChild(area);
+    }
+    area.textContent = "";
+    if (d.etiqueta) {
+      var link = document.createElement("a");
+      link.href = d.etiqueta;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Baixar etiqueta (PDF)";
+      link.style.marginRight = "14px";
+      area.appendChild(link);
+    }
+    var cancelar = document.createElement("button");
+    cancelar.type = "button";
+    cancelar.className = "secundario";
+    cancelar.textContent = "Cancelar etiqueta";
+    cancelar.addEventListener("click", function () { cancelarEtiquetaEnvia(d.codigo, cancelar); });
+    area.appendChild(cancelar);
+  }
+
+  function cancelarEtiquetaEnvia(rastreio, botao) {
+    if (!confirm("Cancelar a etiqueta " + rastreio + " na Envia? Se a Envia aceitar, o valor volta para o seu saldo.")) return;
+    botao.disabled = true;
+    api("/api/carrinho/cancelar-envia", { trackingNumber: rastreio }).then(function (r) {
+      botao.disabled = false;
+      if (r.status === 401) { location.reload(); return; }
+      if (!r.ok) {
+        $("msg-pedido").className = "msg erro";
+        texto($("msg-pedido"), r.dados.erro || "Não consegui cancelar a etiqueta.");
+        return;
+      }
+      $("msg-pedido").className = "msg ok";
+      texto($("msg-pedido"), r.dados.saldoDevolvido
+        ? "Etiqueta cancelada. O valor voltou para o seu saldo na Envia."
+        : "Etiqueta cancelada. A Envia ainda não confirmou a devolução do saldo; confira no painel dela.");
+      $("acoes-envia").textContent = "";
+    }).catch(function () {
+      botao.disabled = false;
+      $("msg-pedido").className = "msg erro";
+      texto($("msg-pedido"), "Sem conexão. Confira no painel da Envia antes de tentar de novo.");
     });
   }
 
