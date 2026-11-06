@@ -1,5 +1,5 @@
 // Envio ao carrinho das transportadoras. Exige login e os tokens do próprio cliente.
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import { lerCredenciais, NOMES, type Transportadora } from "../contas/tokens";
@@ -13,14 +13,18 @@ import {
   type Volume,
 } from "./montar";
 import { criarNoCarrinho, type TransportadoraCarrinho } from "./enviar";
+import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
+import { cancelarEtiquetaEnvia, gerarEtiquetaEnvia } from "../carriers/enviaEtiqueta";
+import { recusaCarrinho } from "../erros";
 
 export const carrinhoRotas = new Hono<{ Bindings: Env }>();
 
 // Nome da origem na tabela de cotações -> transportadora que recebe o pedido.
-const ORIGENS: Record<string, TransportadoraCarrinho> = {
+const ORIGENS: Record<string, TransportadoraCarrinho | "envia"> = {
   SuperFrete: "superfrete",
   Frenet: "frenet",
   "Melhor Envio": "melhorenvio",
+  Envia: "envia",
 };
 
 const TAMANHO_MAX_XML = 2_000_000;
@@ -196,6 +200,85 @@ function lerServico(v: unknown): ServicoEscolhido | null {
   };
 }
 
+// ---- Envia: compra direta da etiqueta (debita o saldo na hora; cancelamento devolve o saldo) ----
+
+function enderecoEnvia(p: Pessoa): EnderecoEnvia {
+  return {
+    name: p.name,
+    phone: p.phone.replace(/\D/g, ""),
+    street: p.street,
+    number: p.number || "S/N",
+    district: p.district || "NA",
+    city: p.city,
+    state: p.state,
+    postalCode: p.postalCode.replace(/\D/g, ""),
+  };
+}
+
+async function comprarEtiquetaEnvia(
+  c: Context<{ Bindings: Env }>,
+  usuarioId: string,
+  dados: DadosNfe,
+  volume: Volume,
+  servico: ServicoEscolhido,
+  token: string,
+) {
+  if (servico.codigoTransportadora === undefined || servico.codigo === undefined) {
+    return c.json({ erro: "Cotação da Envia incompleta. Refaça a cotação e tente de novo." }, 400);
+  }
+  const resultado = await gerarEtiquetaEnvia(
+    {
+      origem: enderecoEnvia(dados.remetente),
+      destino: enderecoEnvia(dados.destinatario),
+      pacote: {
+        peso: volume.peso,
+        comprimento: volume.comprimento,
+        largura: volume.largura,
+        altura: volume.altura,
+        valorDeclarado: dados.valorDeclarado ?? 0,
+      },
+      carrier: String(servico.codigoTransportadora),
+      service: String(servico.codigo),
+    },
+    { token, base: baseEnvia(c.env.ENVIA_AMBIENTE) },
+  );
+
+  if (!resultado.ok) {
+    // Status 0: a conexão caiu. A etiqueta pode ter sido comprada, então o cliente confere antes de tentar de novo.
+    if (resultado.status === 0) {
+      return c.json(
+        { erro: "Não consegui falar com a Envia agora. Confira no painel da Envia se a etiqueta foi comprada antes de tentar de novo." },
+        502,
+      );
+    }
+    return c.json({ erro: recusaCarrinho("Envia", resultado.status, resultado.corpo) }, 502);
+  }
+
+  const e = resultado.etiqueta;
+  try {
+    await c.env.DB.prepare(
+      "INSERT INTO pedidos_carrinho (id, usuario_id, transportadora, chave_nfe, codigo_externo, status, preco, transportadora_envia, etiqueta_url) VALUES (?, ?, 'envia', ?, ?, 'comprada', ?, ?, ?)",
+    )
+      .bind(crypto.randomUUID(), usuarioId, dados.chave, e.rastreio, e.valor, e.carrier, e.etiquetaUrl)
+      .run();
+  } catch (exc) {
+    console.log("[carrinho] etiqueta Envia comprada e não registrada. Rastreio " + e.rastreio + ": " + String(exc));
+    return c.json(
+      { erro: "A etiqueta foi comprada (rastreio " + e.rastreio + "), mas não consegui registrar. Avise o suporte antes de tentar de novo." },
+      500,
+    );
+  }
+
+  return c.json({
+    ok: true,
+    transportadora: "Envia",
+    codigo: e.rastreio,
+    status: "comprada",
+    preco: e.valor,
+    etiqueta: e.etiquetaUrl,
+  });
+}
+
 // DELETE /api/carrinho/pedidos
 // Corpo: { origem, chave }. Remove o registro local do envio para liberar a nota.
 // Use só depois de cancelar ou apagar o pedido no painel da transportadora.
@@ -285,6 +368,10 @@ carrinhoRotas.post("/enviar", async (c) => {
     }
   }
 
+  if (transportadora === "envia") {
+    return comprarEtiquetaEnvia(c, usuario.id, dados, volume, servico, cred.token);
+  }
+
   let payload: unknown;
   try {
     payload =
@@ -331,4 +418,40 @@ carrinhoRotas.post("/enviar", async (c) => {
     status: resultado.status,
     preco: resultado.preco ?? servico.preco,
   });
+});
+
+// POST /api/carrinho/cancelar-envia
+// Corpo: { trackingNumber }. Cancela a etiqueta na Envia (devolve o saldo, se a Envia permitir) e libera o registro.
+carrinhoRotas.post("/cancelar-envia", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
+
+  const corpo = objeto(await c.req.json().catch(() => null));
+  const rastreio = texto(corpo.trackingNumber, 60);
+  if (!rastreio) return c.json({ erro: "Informe o rastreio da etiqueta." }, 400);
+
+  const pedido = await c.env.DB.prepare(
+    "SELECT id, transportadora_envia FROM pedidos_carrinho WHERE usuario_id = ? AND transportadora = 'envia' AND codigo_externo = ?",
+  )
+    .bind(usuario.id, rastreio)
+    .first<{ id: string; transportadora_envia: string | null }>();
+  if (!pedido) return c.json({ erro: "Etiqueta não encontrada na sua conta." }, 404);
+
+  const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
+  const cred = credenciais.envia;
+  if (!cred) return c.json({ erro: "Configure seu token da Envia em Minha conta." }, 400);
+
+  const resultado = await cancelarEtiquetaEnvia(pedido.transportadora_envia ?? "", rastreio, {
+    token: cred.token,
+    base: baseEnvia(c.env.ENVIA_AMBIENTE),
+  });
+  if (!resultado.ok) {
+    if (resultado.status === 0) {
+      return c.json({ erro: "Não consegui falar com a Envia agora. Tente de novo." }, 502);
+    }
+    return c.json({ erro: recusaCarrinho("Envia", resultado.status, resultado.corpo) }, 502);
+  }
+
+  await c.env.DB.prepare("DELETE FROM pedidos_carrinho WHERE id = ?").bind(pedido.id).run();
+  return c.json({ ok: true, saldoDevolvido: resultado.saldoDevolvido });
 });
