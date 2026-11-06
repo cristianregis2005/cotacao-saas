@@ -17,7 +17,7 @@
   "vars": {
     // Remetente no subdomínio verificado no Email Service (mail.cliquefrete.com.br).
     "EMAIL_REMETENTE": "nao-responda@mail.cliquefrete.com.br",
-    // "teste" = sandbox da Envia (token de sandbox). Troque para "producao" ao usar token de produção.
-    "ENVIA_AMBIENTE": "teste"
+    // "producao" = API real da Envia (token de produção). Use "teste" só com token de sandbox.
+    "ENVIA_AMBIENTE": "producao"
   }
 }
