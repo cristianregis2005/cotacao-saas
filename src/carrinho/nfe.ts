@@ -13,6 +13,7 @@ export interface Pessoa {
   state: string;
   postalCode: string;
   phone: string;
+  email?: string; // e-mail do destinatário (a Envia exige para entrega em ponto de coleta)
 }
 
 export interface ItemNota {
@@ -102,6 +103,7 @@ export function lerNfe(xml: string): DadosNfe {
     document: texto(dest, "CNPJ") || texto(dest, "CPF"),
     stateRegister: "",
     ...endereco(conteudo(dest ?? "", "enderDest")),
+    email: texto(dest, "email"),
   };
 
   const valor = texto(icms, "vNF");

@@ -15,6 +15,7 @@ export const TRANSPORTADORAS_ENVIA = ["correios", "jadlog", "jtexpress", "totale
 
 export interface EnderecoEnvia {
   name: string;
+  email?: string; // obrigatório na compra de etiqueta para entrega em ponto de coleta
   phone: string;
   street: string;
   number: string;

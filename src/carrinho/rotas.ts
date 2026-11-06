@@ -51,6 +51,7 @@ function pessoa(v: unknown): Pessoa {
     state: texto(o.state, 2).toUpperCase(),
     postalCode: texto(o.postalCode, 12),
     phone: texto(o.phone, 30),
+    email: texto(o.email, 120),
   };
 }
 
@@ -205,6 +206,7 @@ function lerServico(v: unknown): ServicoEscolhido | null {
 function enderecoEnvia(p: Pessoa): EnderecoEnvia {
   return {
     name: p.name,
+    email: p.email ?? "",
     phone: p.phone.replace(/\D/g, ""),
     street: p.street,
     number: p.number || "S/N",
@@ -225,6 +227,10 @@ async function comprarEtiquetaEnvia(
 ) {
   if (servico.codigoTransportadora === undefined || servico.codigo === undefined) {
     return c.json({ erro: "Cotação da Envia incompleta. Refaça a cotação e tente de novo." }, 400);
+  }
+  // Confere antes de chamar a Envia: sem e-mail do destinatário a compra nunca é aceita.
+  if (!dados.destinatario.email) {
+    return c.json({ erro: "Informe o e-mail do destinatário para comprar a etiqueta na Envia." }, 400);
   }
   const resultado = await gerarEtiquetaEnvia(
     {
@@ -250,6 +256,9 @@ async function comprarEtiquetaEnvia(
         { erro: "Não consegui falar com a Envia agora. Confira no painel da Envia se a etiqueta foi comprada antes de tentar de novo." },
         502,
       );
+    }
+    if (resultado.mensagem) {
+      return c.json({ erro: "A Envia recusou o pedido: " + resultado.mensagem }, 502);
     }
     return c.json({ erro: recusaCarrinho("Envia", resultado.status, resultado.corpo) }, 502);
   }

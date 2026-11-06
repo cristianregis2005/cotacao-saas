@@ -118,6 +118,7 @@ export const PAGINA_HTML = `<!doctype html>
         <label>Cidade <input id="dce-cidade" autocomplete="off"></label>
         <label>UF <input id="dce-uf" maxlength="2" autocomplete="off"></label>
         <label>Telefone com DDD <input id="dce-telefone" inputmode="numeric"></label>
+        <label>E-mail do destinatário <input id="dce-email" inputmode="email" autocomplete="off"></label>
       </div>
       <div class="dce-cabecalho">
         <h3>Produtos</h3>
@@ -422,7 +423,7 @@ export const PAGINA_HTML = `<!doctype html>
   var CAMPOS_DESTINATARIO = [
     ["name", "Nome"], ["document", "CPF ou CNPJ"], ["phone", "Telefone"], ["postalCode", "CEP"],
     ["street", "Rua"], ["number", "Número"], ["complement", "Complemento"], ["district", "Bairro"],
-    ["city", "Cidade"], ["state", "UF"]
+    ["city", "Cidade"], ["state", "UF"], ["email", "E-mail"]
   ];
 
   function montarCamposNfe(destinatario) {
@@ -678,7 +679,7 @@ export const PAGINA_HTML = `<!doctype html>
   }
 
   // ---- Envio sem nota (DC-e) ----
-  var CAMPOS_DCE = ["dce-nome", "dce-documento", "dce-cep", "dce-logradouro", "dce-numero", "dce-complemento", "dce-bairro", "dce-cidade", "dce-uf", "dce-telefone"];
+  var CAMPOS_DCE = ["dce-nome", "dce-documento", "dce-cep", "dce-logradouro", "dce-numero", "dce-complemento", "dce-bairro", "dce-cidade", "dce-uf", "dce-telefone", "dce-email"];
 
   function atualizarDce() {
     $("secao-dce").hidden = !!dadosNfe;
@@ -759,7 +760,8 @@ export const PAGINA_HTML = `<!doctype html>
         city: $("dce-cidade").value.trim(),
         state: $("dce-uf").value.trim(),
         postalCode: $("dce-cep").value.trim(),
-        phone: $("dce-telefone").value.trim()
+        phone: $("dce-telefone").value.trim(),
+        email: $("dce-email").value.trim()
       },
       itens: itens,
       valorDeclarado: totalDce(),
