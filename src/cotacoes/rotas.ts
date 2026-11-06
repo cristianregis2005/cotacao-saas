@@ -6,7 +6,7 @@ import type { EntradaFrete } from "../carriers/tipos";
 import { lerCredenciais } from "../contas/tokens";
 import { registrarCotacao, verificarLimite } from "../planos";
 import { cotarTodas, type ExtrasCotacao } from "./todas";
-import type { EnderecoEnvia } from "../carriers/envia";
+import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 
 const digitos = (v: unknown): string => (typeof v === "string" ? v.replace(/\D/g, "") : "");
 const texto = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -85,7 +85,7 @@ cotacaoRotas.post("/todas", async (c) => {
   )
     .bind(usuario.id)
     .first<Record<string, string | null>>();
-  const extras: ExtrasCotacao = {};
+  const extras: ExtrasCotacao = { enviaBase: baseEnvia(c.env.ENVIA_AMBIENTE) };
   if (cadastro && cadastro.origem_logradouro && cadastro.origem_numero && cadastro.origem_bairro && cadastro.origem_cidade && cadastro.origem_uf && cadastro.origem_cep && cadastro.telefone) {
     extras.enviaOrigem = {
       name: cadastro.empresa || cadastro.nome || "Remetente",

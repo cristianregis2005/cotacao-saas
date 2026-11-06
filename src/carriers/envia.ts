@@ -3,6 +3,12 @@ import { motivoAmigavel } from "../erros";
 // Exige endereço completo de origem e destino, por isso a cotação usa o cadastro do cliente e a nota fiscal.
 
 export const ENVIA_BASE = "https://api.envia.com";
+export const ENVIA_BASE_TESTE = "https://api-test.envia.com";
+
+// Token de sandbox só funciona na sandbox, e token de produção só na API real (senão a Envia responde 401).
+export function baseEnvia(ambiente?: string): string {
+  return ambiente === "teste" ? ENVIA_BASE_TESTE : ENVIA_BASE;
+}
 
 // "loggi" ainda não foi confirmada em produção (igual ao app Python).
 export const TRANSPORTADORAS_ENVIA = ["correios", "jadlog", "jtexpress", "totalexpress", "loggi"] as const;
@@ -55,6 +61,7 @@ export interface EntradaEnvia {
 
 export interface OpcoesEnvia {
   token: string;
+  base?: string; // endereço da API (produção ou sandbox)
   fetchFn?: typeof fetch;
 }
 
@@ -84,7 +91,7 @@ async function consultar(
 
   let resp: Response;
   try {
-    resp = await fetchFn(`${ENVIA_BASE}/ship/rate/`, {
+    resp = await fetchFn(`${opcoes.base ?? ENVIA_BASE}/ship/rate/`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${opcoes.token}`,
