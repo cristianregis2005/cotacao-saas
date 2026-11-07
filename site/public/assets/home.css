@@ -339,3 +339,7 @@ h1, h2, .cta-final h2 { text-wrap: balance; }
 .rodape-grid > * { min-width: 0; }
 .rodape-grid a { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .visual-bolha { display: none; } .hero-visual { margin-top: 0; } }
+
+/* Ícones em SVG (Lucide, licença ISC): seguem o tamanho e a cor do contêiner */
+.icone { display: block; width: 1em; height: 1em; flex: none; }
+.check-icone .icone, .lista-recursos .icone { stroke-width: 3; }
