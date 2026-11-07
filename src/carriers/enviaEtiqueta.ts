@@ -3,12 +3,19 @@
 // O cancelamento (POST /ship/cancel/) pode devolver o saldo, se a transportadora ainda permitir.
 import type { EnderecoEnvia } from "./envia";
 
+export interface ItemEtiqueta {
+  descricao: string;
+  quantidade: number;
+  valorUnitario: number;
+}
+
 export interface PacoteEtiqueta {
   peso: number;
   comprimento: number;
   largura: number;
   altura: number;
   valorDeclarado: number;
+  itens: ItemEtiqueta[]; // a Envia recusa o pacote sem itens (Loggi); vem da nota ou da DC-e
 }
 
 export interface EntradaEtiqueta {
@@ -70,6 +77,15 @@ async function chamar(
   return { ok: true, dados };
 }
 
+// Descrição dos produtos exigida pela Envia. Sem itens, usa uma linha com o valor declarado.
+function itensDoPacote(p: PacoteEtiqueta) {
+  const itens = p.itens.filter((i) => i.descricao.trim());
+  if (!itens.length) {
+    return [{ description: "Mercadoria", quantity: 1, price: p.valorDeclarado }];
+  }
+  return itens.map((i) => ({ description: i.descricao, quantity: i.quantidade, price: i.valorUnitario }));
+}
+
 export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: OpcoesEtiqueta): Promise<ResultadoEtiqueta> {
   const p = entrada.pacote;
   const corpo = {
@@ -84,6 +100,7 @@ export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: Opcoe
       lengthUnit: "CM",
       weight: p.peso,
       dimensions: { length: p.comprimento, width: p.largura, height: p.altura },
+      items: itensDoPacote(p),
     }],
     shipment: { type: 1, carrier: entrada.carrier, service: entrada.service },
     settings: { printFormat: "PDF", printSize: "STOCK_4X6", currency: "BRL", comments: "" },
