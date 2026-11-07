@@ -8,6 +8,7 @@ import { cotarFrenet } from "../carriers/frenet";
 import { cotarMelhorEnvio } from "../carriers/melhorenvio";
 import { cotarEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { motivoAmigavel } from "../erros";
+import { CHAVE_DA_ORIGEM, chaveTransportadora } from "../transportadoras/chaves";
 
 export interface CotacaoUnificada {
   origem: "SuperFrete" | "Frenet" | "Melhor Envio" | "Envia";
@@ -38,13 +39,7 @@ export interface ExtrasCotacao {
   desligadas?: string[]; // transportadoras desligadas no painel do administrador (chaves: superfrete, frenet...)
 }
 
-// Nome exibido -> chave usada no painel do administrador.
-export const CHAVE_DA_ORIGEM: Record<string, string> = {
-  SuperFrete: "superfrete",
-  Frenet: "frenet",
-  "Melhor Envio": "melhorenvio",
-  Envia: "envia",
-};
+
 
 export async function cotarTodas(
   entrada: EntradaFrete,
@@ -122,6 +117,7 @@ export async function cotarTodas(
 
   const ativas = tarefas.filter((t) => !(extras.desligadas ?? []).includes(CHAVE_DA_ORIGEM[t.nome]));
   const resultados = await Promise.allSettled(ativas.map((t) => t.executar()));
+  const desligadas = extras.desligadas ?? [];
   const cotacoes: CotacaoUnificada[] = [];
   const avisos: string[] = [];
 
@@ -136,5 +132,10 @@ export async function cotarTodas(
   });
 
   avisos.push(...avisosEnvia);
-  return { cotacoes: cotacoes.sort((a, b) => a.preco - b.preco), avisos };
+  // Some as cotações das transportadoras desligadas (inclusive as da Envia).
+  const visiveis = cotacoes.filter((c) => {
+    const chave = chaveTransportadora(c.origem, c.codigoTransportadora, c.transportadora);
+    return !chave || !desligadas.includes(chave);
+  });
+  return { cotacoes: visiveis.sort((a, b) => a.preco - b.preco), avisos };
 }

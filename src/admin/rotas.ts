@@ -90,39 +90,36 @@ adminRotas.get("/historico", async (c) => {
 });
 
 // Transportadoras ligadas ou desligadas para a cotação de todos os clientes.
+// A lista vem das cotações já recebidas (tabela transportadoras_vistas). Plataformas aparecem sempre.
 const NOMES_PLATAFORMA: Record<string, string> = { superfrete: "SuperFrete", frenet: "Frenet", melhorenvio: "Melhor Envio", envia: "Envia" };
-// Transportadoras dentro da Envia: chave "envia:<código>". Cada uma pode ser desligada sem desligar a Envia inteira.
-const NOMES_ENVIA: Record<string, string> = { correios: "Correios", jadlog: "Jadlog", jtexpress: "J&T Express", loggi: "Loggi" };
 
-function chaveValida(chave: string): boolean {
+async function chaveExiste(db: D1Database, chave: string): Promise<boolean> {
   if (chave in NOMES_PLATAFORMA) return true;
-  return chave.startsWith("envia:") && chave.slice(6) in NOMES_ENVIA;
-}
-
-function nomeDaChave(chave: string): string {
-  if (chave in NOMES_PLATAFORMA) return NOMES_PLATAFORMA[chave];
-  return "Envia · " + NOMES_ENVIA[chave.slice(6)];
+  return !!(await db.prepare("SELECT chave FROM transportadoras_vistas WHERE chave = ?").bind(chave).first());
 }
 
 adminRotas.get("/transportadoras", async (c) => {
-  const { results } = await c.env.DB.prepare("SELECT transportadora, ativa FROM transportadoras_ativas").all<{ transportadora: string; ativa: number }>();
-  const porChave = new Map(results.map((r) => [r.transportadora, r.ativa === 1]));
-  return c.json({
-    transportadoras: [
-      ...Object.keys(NOMES_PLATAFORMA).map((chave) => ({ chave, nome: nomeDaChave(chave), ativa: porChave.get(chave) ?? true, subordinada: false })),
-      ...Object.keys(NOMES_ENVIA).map((codigo) => {
-        const chave = "envia:" + codigo;
-        return { chave, nome: nomeDaChave(chave), ativa: porChave.get(chave) ?? true, subordinada: true };
-      }),
-    ],
-  });
+  const { results: ativas } = await c.env.DB.prepare("SELECT transportadora, ativa FROM transportadoras_ativas").all<{ transportadora: string; ativa: number }>();
+  const { results: vistas } = await c.env.DB.prepare(
+    "SELECT chave, plataforma, nome FROM transportadoras_vistas ORDER BY plataforma, nome",
+  ).all<{ chave: string; plataforma: string; nome: string }>();
+  const porChave = new Map<string, boolean>(ativas.map((r) => [r.transportadora, r.ativa === 1] as [string, boolean]));
+
+  const lista: { chave: string; nome: string; ativa: boolean; subordinada: boolean }[] = [];
+  for (const plataforma of Object.keys(NOMES_PLATAFORMA)) {
+    lista.push({ chave: plataforma, nome: NOMES_PLATAFORMA[plataforma], ativa: porChave.get(plataforma) ?? true, subordinada: false });
+    for (const v of vistas.filter((x) => x.plataforma === plataforma)) {
+      lista.push({ chave: v.chave, nome: v.nome, ativa: porChave.get(v.chave) ?? true, subordinada: true });
+    }
+  }
+  return c.json({ transportadoras: lista });
 });
 
 adminRotas.put("/transportadoras/:chave", async (c) => {
   const admin = await usuarioDaSessao(c);
   if (!admin) return c.json({ erro: "Faça login." }, 401);
   const chave = c.req.param("chave");
-  if (!chaveValida(chave)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  if (!(await chaveExiste(c.env.DB, chave))) return c.json({ erro: "Transportadora desconhecida." }, 404);
   const corpo = (await c.req.json<{ ativa?: unknown }>().catch(() => null)) ?? {};
   if (typeof corpo.ativa !== "boolean") return c.json({ erro: "Informe ativa como verdadeiro ou falso." }, 400);
 
