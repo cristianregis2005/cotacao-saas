@@ -96,6 +96,44 @@ export const ADMIN_HTML = `<!doctype html>
       <p class="msg" id="msg-transportadoras"></p>
     </div>
 
+    <div class="cartao" id="secao-auditoria">
+      <h2>Auditoria</h2>
+      <p class="suave">Ações feitas pelos administradores no painel.</p>
+      <form class="grade" id="form-auditoria">
+        <label>De
+          <input type="date" id="aud-inicio">
+        </label>
+        <label>Até
+          <input type="date" id="aud-fim">
+        </label>
+        <label>E-mail do cliente
+          <input id="aud-cliente" placeholder="parte do e-mail">
+        </label>
+        <label>Ação
+          <select id="aud-acao">
+            <option value="">Todas</option>
+            <option value="plano_criado">Plano criado</option>
+            <option value="plano_editado">Plano editado</option>
+            <option value="plano_alterado">Plano do cliente alterado</option>
+            <option value="dados_editados">Dados do cliente editados</option>
+            <option value="token_salvo">Token salvo</option>
+            <option value="token_removido">Token removido</option>
+            <option value="transportadora_ligada">Transportadora ligada</option>
+            <option value="transportadora_desligada">Transportadora desligada</option>
+          </select>
+        </label>
+        <div>
+          <button type="submit">Filtrar</button>
+          <button type="button" class="secundario" id="btn-limpar-auditoria">Limpar</button>
+        </div>
+      </form>
+      <p class="msg" id="msg-auditoria"></p>
+      <table>
+        <thead><tr><th>Data (UTC)</th><th>Administrador</th><th>Cliente</th><th>Ação</th><th>Detalhe</th></tr></thead>
+        <tbody id="linhas-auditoria"></tbody>
+      </table>
+    </div>
+
     <section class="cartao" id="painel-dados" hidden>
       <div class="linha">
         <h2 id="titulo-dados">Dados do cliente</h2>
@@ -626,6 +664,69 @@ export const ADMIN_HTML = `<!doctype html>
     carregarHistorico();
   });
 
+  // ---- Auditoria ----
+
+  var NOMES_ACAO = {
+    plano_criado: "Plano criado",
+    plano_editado: "Plano editado",
+    plano_alterado: "Plano do cliente alterado",
+    dados_editados: "Dados do cliente editados",
+    token_salvo: "Token salvo",
+    token_removido: "Token removido",
+    transportadora_ligada: "Transportadora ligada",
+    transportadora_desligada: "Transportadora desligada"
+  };
+
+  function mostrarMsgAuditoria(texto, tipo) {
+    $("msg-auditoria").className = "msg " + (tipo || "");
+    $("msg-auditoria").textContent = texto;
+  }
+
+  function carregarAuditoria() {
+    var params = [];
+    var inicio = $("aud-inicio").value;
+    var fim = $("aud-fim").value;
+    var cliente = $("aud-cliente").value.trim();
+    var acao = $("aud-acao").value;
+    if (inicio) params.push("inicio=" + encodeURIComponent(inicio));
+    if (fim) params.push("fim=" + encodeURIComponent(fim));
+    if (cliente) params.push("cliente=" + encodeURIComponent(cliente));
+    if (acao) params.push("acao=" + encodeURIComponent(acao));
+    var caminho = "/api/admin/auditoria" + (params.length ? "?" + params.join("&") : "");
+
+    mostrarMsgAuditoria("Carregando...");
+    return api(caminho).then(function (r) {
+      var corpo = $("linhas-auditoria");
+      corpo.textContent = "";
+      if (!r.ok) { mostrarMsgAuditoria(r.dados.erro || "Não consegui carregar a auditoria.", "erro"); return; }
+      var lista = r.dados.auditoria;
+      var aviso = lista.length >= 300 ? " Mostrando as 300 mais recentes. Use os filtros para restringir." : "";
+      mostrarMsgAuditoria((lista.length === 0 ? "Nenhum registro encontrado." : lista.length + (lista.length === 1 ? " registro encontrado." : " registros encontrados.")) + aviso);
+      lista.forEach(function (a) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(formatarDataHora(a.criado_em)));
+        tr.appendChild(celula(a.admin_email || "-"));
+        tr.appendChild(celula(a.cliente_email || "-"));
+        tr.appendChild(celula(NOMES_ACAO[a.acao] || a.acao));
+        tr.appendChild(celula(a.detalhe || "-"));
+        corpo.appendChild(tr);
+      });
+    });
+  }
+
+  $("form-auditoria").addEventListener("submit", function (e) {
+    e.preventDefault();
+    carregarAuditoria();
+  });
+
+  $("btn-limpar-auditoria").addEventListener("click", function () {
+    $("aud-inicio").value = "";
+    $("aud-fim").value = "";
+    $("aud-cliente").value = "";
+    $("aud-acao").value = "";
+    carregarAuditoria();
+  });
+
   // ---- Transportadoras ligadas ou desligadas ----
 
   function carregarTransportadoras() {
@@ -674,6 +775,7 @@ export const ADMIN_HTML = `<!doctype html>
       desenharUsuarios(res[0].dados.usuarios);
       carregarHistorico();
       carregarTransportadoras();
+      carregarAuditoria();
     });
   }
 

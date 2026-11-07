@@ -25,6 +25,39 @@ adminRotas.get("/usuarios", async (c) => {
   return c.json({ usuarios: results });
 });
 
+// Auditoria: ações do administrador. Filtros opcionais: inicio, fim (AAAA-MM-DD), cliente (e-mail) e acao.
+adminRotas.get("/auditoria", async (c) => {
+  const inicio = c.req.query("inicio") ?? "";
+  const fim = c.req.query("fim") ?? "";
+  const cliente = (c.req.query("cliente") ?? "").trim().slice(0, 120);
+  const acao = (c.req.query("acao") ?? "").trim().slice(0, 60);
+  const data = /^\d{4}-\d{2}-\d{2}$/;
+  if ((inicio && !data.test(inicio)) || (fim && !data.test(fim))) {
+    return c.json({ erro: "Datas inválidas. Use o formato AAAA-MM-DD." }, 400);
+  }
+
+  const condicoes: string[] = [];
+  const valores: (string | number)[] = [];
+  if (inicio) { condicoes.push("date(a.criado_em) >= ?"); valores.push(inicio); }
+  if (fim) { condicoes.push("date(a.criado_em) <= ?"); valores.push(fim); }
+  if (cliente) { condicoes.push("lower(cli.email) LIKE ?"); valores.push("%" + cliente.toLowerCase() + "%"); }
+  if (acao) { condicoes.push("a.acao = ?"); valores.push(acao); }
+  const onde = condicoes.length ? "WHERE " + condicoes.join(" AND ") : "";
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT a.id, a.criado_em, a.acao, a.detalhe, adm.email AS admin_email, cli.email AS cliente_email
+       FROM auditoria a
+       JOIN usuarios adm ON adm.id = a.admin_id
+       LEFT JOIN usuarios cli ON cli.id = a.usuario_id
+       ${onde}
+       ORDER BY a.criado_em DESC
+       LIMIT 300`,
+  )
+    .bind(...valores)
+    .all();
+  return c.json({ auditoria: results });
+});
+
 // Histórico de cotações de todos os clientes. Filtros opcionais: inicio, fim (AAAA-MM-DD) e email.
 adminRotas.get("/historico", async (c) => {
   const inicio = c.req.query("inicio") ?? "";
@@ -98,7 +131,7 @@ adminRotas.put("/transportadoras/:chave", async (c) => {
   )
     .bind(chave, corpo.ativa ? 1 : 0)
     .run();
-  await registrarAuditoria(c.env.DB, admin.id, admin.id, corpo.ativa ? "transportadora_ligada" : "transportadora_desligada", chave);
+  await registrarAuditoria(c.env.DB, admin.id, null, corpo.ativa ? "transportadora_ligada" : "transportadora_desligada", chave);
   return c.json({ ok: true });
 });
 
@@ -110,6 +143,8 @@ adminRotas.get("/planos", async (c) => {
 });
 
 adminRotas.post("/planos", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
   const corpo = (await c.req.json<Record<string, unknown>>().catch(() => null)) ?? {};
   const r = validarPlano(corpo, true);
   if ("erro" in r) return c.json({ erro: r.erro }, 400);
@@ -122,11 +157,14 @@ adminRotas.post("/planos", async (c) => {
   )
     .bind(r.valor.id, r.valor.nome, r.valor.preco_centavos, r.valor.limite_cotacoes_mes)
     .run();
+  await registrarAuditoria(c.env.DB, admin.id, null, "plano_criado", r.valor.id);
   return c.json({ ok: true }, 201);
 });
 
 // Edita nome, preço e limite. O código do plano não muda.
 adminRotas.put("/planos/:id", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
   const id = c.req.param("id");
   const corpo = (await c.req.json<Record<string, unknown>>().catch(() => null)) ?? {};
   const r = validarPlano({ ...corpo, id }, false);
@@ -140,10 +178,13 @@ adminRotas.put("/planos/:id", async (c) => {
   )
     .bind(r.valor.nome, r.valor.preco_centavos, r.valor.limite_cotacoes_mes, id)
     .run();
+  await registrarAuditoria(c.env.DB, admin.id, null, "plano_editado", id);
   return c.json({ ok: true });
 });
 
 adminRotas.post("/usuarios/:id/plano", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
   const corpo: { plano_id?: string } = (await c.req.json<{ plano_id?: string }>().catch(() => null)) ?? {};
   const planoId = corpo.plano_id;
   if (!planoId) return c.json({ erro: "Informe o plano." }, 400);
@@ -151,9 +192,11 @@ adminRotas.post("/usuarios/:id/plano", async (c) => {
   const plano = await c.env.DB.prepare("SELECT id FROM planos WHERE id = ?").bind(planoId).first();
   if (!plano) return c.json({ erro: "Esse plano não existe." }, 404);
 
+  const clienteId = c.req.param("id");
   await c.env.DB.prepare("UPDATE usuarios SET plano_id = ? WHERE id = ?")
-    .bind(planoId, c.req.param("id"))
+    .bind(planoId, clienteId)
     .run();
+  await registrarAuditoria(c.env.DB, admin.id, clienteId, "plano_alterado", planoId);
   return c.json({ ok: true });
 });
 
