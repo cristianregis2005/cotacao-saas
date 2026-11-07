@@ -343,3 +343,25 @@ h1, h2, .cta-final h2 { text-wrap: balance; }
 /* Ícones em SVG (Lucide, licença ISC): seguem o tamanho e a cor do contêiner */
 .icone { display: block; width: 1em; height: 1em; flex: none; }
 .check-icone .icone, .lista-recursos .icone { stroke-width: 3; }
+
+/* Ritmo das seções: fundos alternados, uma faixa escura em "Como funciona"
+   e a caixa da DC-e unida à seção de guias. */
+.secao-publicos { background: white; }
+.secao-recursos { background: var(--surface-soft); }
+.secao-recursos .recursos-visual { background: var(--blue-soft); }
+.secao-guias { background: white; padding-bottom: 40px; }
+.secao-nota { background: white; }
+
+.secao-como { background: var(--navy); color: #c3cfe1; }
+.secao-como .sobretitulo { color: #8fc0ff; }
+.secao-como .cabecalho-secao h2 { color: white; }
+.secao-como .cabecalho-secao p { color: #b9c6da; }
+.secao-como .passo-card { border-color: rgba(255,255,255,.10); background: rgba(255,255,255,.04); }
+.secao-como .passo-card h3 { color: white; }
+.secao-como .passo-card p { color: #b9c6da; }
+.secao-como .passo-numero { color: rgba(255,255,255,.16); }
+.secao-como .passo-icone { color: #8fc0ff; background: rgba(91,157,255,.14); }
+.secao-como .link-seta { color: #8fc0ff; }
+.secao-como .link-seta:hover { color: white; }
+.secao-como .botao { box-shadow: 0 8px 22px rgba(0,0,0,.25); }
+.secao-como :focus-visible { outline-color: white; }
