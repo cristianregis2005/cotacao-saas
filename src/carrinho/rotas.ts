@@ -242,6 +242,7 @@ async function comprarEtiquetaEnvia(
         largura: volume.largura,
         altura: volume.altura,
         valorDeclarado: dados.valorDeclarado ?? 0,
+        itens: dados.itens.map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valorUnitario: i.valorUnitario })),
       },
       carrier: String(servico.codigoTransportadora),
       service: String(servico.codigo),
