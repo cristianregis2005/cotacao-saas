@@ -7,6 +7,8 @@ import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANS
 import { validarDados } from "./dados";
 import { garantirFranquiaUnica } from "../auth/identidade";
 import { deleteCookie } from "hono/cookie";
+import { baseConsultasEnvia } from "../carriers/envia";
+import { lerCredenciais } from "./tokens";
 
 export const contaRotas = new Hono<{ Bindings: Env }>();
 
@@ -57,6 +59,100 @@ contaRotas.delete("/tokens/:transportadora", async (c) => {
   const transportadora = c.req.param("transportadora");
   if (!ehTransportadora(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
   await removerToken(c.env.DB, usuario.id, transportadora);
+  return c.json({ ok: true });
+});
+
+// ---- Agências de coleta da Envia (uma por transportadora, escolhida em Meus dados) ----
+
+const CODIGOS_AGENCIA = ["correios", "jadlog", "jtexpress", "loggi"];
+
+contaRotas.get("/agencias", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+  const { results } = await c.env.DB.prepare(
+    "SELECT transportadora, branch_code, descricao FROM agencias_envia WHERE usuario_id = ?",
+  )
+    .bind(usuario.id)
+    .all();
+  return c.json({ agencias: results });
+});
+
+// Busca as agências da transportadora perto do CEP de origem do cliente (tipo 1 = origem).
+contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+  const transportadora = c.req.param("transportadora");
+  if (!CODIGOS_AGENCIA.includes(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+
+  const cad = await c.env.DB.prepare("SELECT origem_cep FROM usuarios WHERE id = ?")
+    .bind(usuario.id)
+    .first<{ origem_cep: string | null }>();
+  const cep = (cad?.origem_cep ?? "").replace(/\D/g, "");
+  if (cep.length !== 8) return c.json({ erro: "Complete o CEP de origem em Meus dados antes de buscar agências." }, 400);
+
+  const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
+  if (!credenciais.envia) return c.json({ erro: "Configure seu token da Envia em Minha conta." }, 400);
+
+  const url = baseConsultasEnvia(c.env.ENVIA_AMBIENTE) + "/branches/" + transportadora + "/BR?zipcode=" + cep + "&type=1";
+  let resp: Response;
+  try {
+    resp = await fetch(url, { headers: { Authorization: "Bearer " + credenciais.envia.token, Accept: "application/json" } });
+  } catch (exc) {
+    console.log("[agencias] falha de conexão: " + String(exc));
+    return c.json({ erro: "Não consegui falar com a Envia agora. Tente de novo." }, 502);
+  }
+  const bruto = await resp.text();
+  if (!resp.ok) {
+    console.log("[agencias] Envia HTTP " + resp.status + ": " + bruto.slice(0, 300));
+    return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
+  }
+  let lista: unknown;
+  try {
+    lista = JSON.parse(bruto);
+  } catch {
+    return c.json({ erro: "A Envia não respondeu como esperado." }, 502);
+  }
+  const agencias = Array.isArray(lista)
+    ? lista.slice(0, 50).map((a) => {
+        const o = (a ?? {}) as Record<string, unknown>;
+        const codigo = String(o.branch_code ?? "");
+        return {
+          branch_code: codigo,
+          descricao: String(o.reference ?? codigo),
+          distancia: typeof o.distance === "number" ? o.distance : null,
+        };
+      }).filter((a) => a.branch_code)
+    : [];
+  return c.json({ agencias });
+});
+
+contaRotas.put("/agencias/:transportadora", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+  const transportadora = c.req.param("transportadora");
+  if (!CODIGOS_AGENCIA.includes(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+
+  const corpo = (await c.req.json<{ branch_code?: unknown; descricao?: unknown }>().catch(() => null)) ?? {};
+  const codigo = typeof corpo.branch_code === "string" ? corpo.branch_code.trim().slice(0, 40) : "";
+  const descricao = typeof corpo.descricao === "string" ? corpo.descricao.trim().slice(0, 160) : "";
+  if (!codigo) return c.json({ erro: "Escolha uma agência da lista." }, 400);
+
+  await c.env.DB.prepare(
+    "INSERT INTO agencias_envia (usuario_id, transportadora, branch_code, descricao, atualizado_em) VALUES (?, ?, ?, ?, datetime('now')) ON CONFLICT(usuario_id, transportadora) DO UPDATE SET branch_code = excluded.branch_code, descricao = excluded.descricao, atualizado_em = excluded.atualizado_em",
+  )
+    .bind(usuario.id, transportadora, codigo, descricao || codigo)
+    .run();
+  return c.json({ ok: true });
+});
+
+contaRotas.delete("/agencias/:transportadora", async (c) => {
+  const usuario = await usuarioDaSessao(c);
+  if (!usuario) return c.json({ erro: "Faça login." }, 401);
+  const transportadora = c.req.param("transportadora");
+  if (!CODIGOS_AGENCIA.includes(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  await c.env.DB.prepare("DELETE FROM agencias_envia WHERE usuario_id = ? AND transportadora = ?")
+    .bind(usuario.id, transportadora)
+    .run();
   return c.json({ ok: true });
 });
 
@@ -115,6 +211,7 @@ contaRotas.delete("/", async (c) => {
     c.env.DB.prepare("DELETE FROM codigos_login WHERE email = ?").bind(usuario.email),
     c.env.DB.prepare("DELETE FROM cotacoes_realizadas WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM historico_cotacoes WHERE usuario_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM agencias_envia WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM pedidos_carrinho WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM assinaturas WHERE usuario_id = ?").bind(id),
     c.env.DB.prepare("UPDATE identidades SET usuario_id = NULL WHERE usuario_id = ?").bind(id),

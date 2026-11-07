@@ -47,6 +47,7 @@ export const CONTA_HTML = `<!doctype html>
   <p class="status" id="quem"></p>
   <div id="dados"></div>
   <div id="cartoes"></div>
+  <div id="agencias"></div>
   <div id="excluir"></div>
 </main>
 <script>
@@ -207,6 +208,115 @@ export const CONTA_HTML = `<!doctype html>
     });
   }
 
+  // ---- Agências de coleta da Envia ----
+
+  var NOMES_AGENCIA = { correios: "Correios", jadlog: "Jadlog", jtexpress: "J&T Express", loggi: "Loggi" };
+
+  function carregarAgencias() {
+    api("/api/conta/agencias").then(function (r) {
+      var salvas = {};
+      if (r.ok) r.dados.agencias.forEach(function (a) { salvas[a.transportadora] = a; });
+      var area = $("agencias");
+      area.textContent = "";
+      var cartao = document.createElement("section");
+      cartao.className = "cartao";
+      var titulo = document.createElement("h2");
+      titulo.textContent = "Agências de coleta (Envia)";
+      cartao.appendChild(titulo);
+      var ajuda = document.createElement("p");
+      ajuda.className = "suave";
+      ajuda.textContent = "Escolha a agência de onde a transportadora vai coletar seu pacote. A busca usa o CEP de origem do seu cadastro.";
+      cartao.appendChild(ajuda);
+      Object.keys(NOMES_AGENCIA).forEach(function (codigo) {
+        cartao.appendChild(montarLinhaAgencia(codigo, salvas[codigo]));
+      });
+      area.appendChild(cartao);
+    });
+  }
+
+  function montarLinhaAgencia(codigo, salva) {
+    var bloco = document.createElement("div");
+    bloco.className = "bloco-token";
+
+    var topo = document.createElement("div");
+    topo.className = "linha";
+    var nome = document.createElement("strong");
+    nome.textContent = NOMES_AGENCIA[codigo];
+    var status = document.createElement("span");
+    status.className = "status" + (salva ? " ok" : "");
+    status.textContent = salva ? "Escolhida: " + salva.descricao : "Não escolhida";
+    topo.appendChild(nome);
+    topo.appendChild(status);
+    bloco.appendChild(topo);
+
+    var acoes = document.createElement("div");
+    acoes.style.marginTop = "8px";
+    var escolher = document.createElement("button");
+    escolher.type = "button";
+    escolher.className = "secundario";
+    escolher.textContent = salva ? "Trocar agência" : "Escolher agência";
+    acoes.appendChild(escolher);
+    if (salva) {
+      var remover = document.createElement("button");
+      remover.type = "button";
+      remover.className = "secundario";
+      remover.style.marginLeft = "6px";
+      remover.textContent = "Remover";
+      remover.addEventListener("click", function () {
+        api("/api/conta/agencias/" + codigo, null, "DELETE").then(function () { carregarAgencias(); });
+      });
+      acoes.appendChild(remover);
+    }
+    bloco.appendChild(acoes);
+
+    var msg = document.createElement("p");
+    msg.className = "msg";
+    var lista = document.createElement("div");
+    lista.style.marginTop = "8px";
+    bloco.appendChild(msg);
+    bloco.appendChild(lista);
+
+    escolher.addEventListener("click", function () {
+      lista.textContent = "";
+      msg.className = "msg";
+      msg.textContent = "Buscando agências...";
+      api("/api/conta/agencias/buscar/" + codigo).then(function (r) {
+        if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui buscar as agências."; return; }
+        var agencias = r.dados.agencias;
+        msg.textContent = agencias.length ? "Escolha uma agência:" : "Nenhuma agência encontrada perto do seu CEP de origem.";
+        agencias.forEach(function (a) {
+          var label = document.createElement("label");
+          label.style.display = "block";
+          var radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = "agencia-" + codigo;
+          radio.value = a.branch_code;
+          radio.setAttribute("data-descricao", a.descricao);
+          radio.style.width = "auto";
+          label.appendChild(radio);
+          var texto = " " + a.descricao + (a.distancia !== null ? " (" + a.distancia.toFixed(1) + " km)" : "") + " · " + a.branch_code;
+          label.appendChild(document.createTextNode(texto));
+          lista.appendChild(label);
+        });
+        if (agencias.length) {
+          var salvar = document.createElement("button");
+          salvar.type = "button";
+          salvar.textContent = "Salvar agência";
+          salvar.addEventListener("click", function () {
+            var marcada = lista.querySelector('input[name="agencia-' + codigo + '"]:checked');
+            if (!marcada) { msg.className = "msg erro"; msg.textContent = "Marque uma agência antes de salvar."; return; }
+            api("/api/conta/agencias/" + codigo, { branch_code: marcada.value, descricao: marcada.getAttribute("data-descricao") }, "PUT").then(function (res) {
+              if (!res.ok) { msg.className = "msg erro"; msg.textContent = res.dados.erro || "Não consegui salvar."; return; }
+              carregarAgencias();
+            });
+          });
+          lista.appendChild(salvar);
+        }
+      });
+    });
+    return bloco;
+  }
+
   var CAMPOS = [
     ["nome", "Nome completo", "text"],
     ["empresa", "Empresa (opcional)", "text"],
@@ -349,6 +459,7 @@ export const CONTA_HTML = `<!doctype html>
 
   carregar();
   carregarDados();
+  carregarAgencias();
   montarExcluir();
 })();
 </script>
