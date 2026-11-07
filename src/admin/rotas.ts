@@ -56,6 +56,38 @@ adminRotas.get("/historico", async (c) => {
   return c.json({ historico: results });
 });
 
+// Transportadoras ligadas ou desligadas para a cotação de todos os clientes.
+const NOMES_PLATAFORMA: Record<string, string> = { superfrete: "SuperFrete", frenet: "Frenet", melhorenvio: "Melhor Envio", envia: "Envia" };
+
+adminRotas.get("/transportadoras", async (c) => {
+  const { results } = await c.env.DB.prepare("SELECT transportadora, ativa FROM transportadoras_ativas").all<{ transportadora: string; ativa: number }>();
+  const porChave = new Map(results.map((r) => [r.transportadora, r.ativa === 1]));
+  return c.json({
+    transportadoras: Object.keys(NOMES_PLATAFORMA).map((chave) => ({
+      chave,
+      nome: NOMES_PLATAFORMA[chave],
+      ativa: porChave.get(chave) ?? true,
+    })),
+  });
+});
+
+adminRotas.put("/transportadoras/:chave", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  const chave = c.req.param("chave");
+  if (!(chave in NOMES_PLATAFORMA)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  const corpo = (await c.req.json<{ ativa?: unknown }>().catch(() => null)) ?? {};
+  if (typeof corpo.ativa !== "boolean") return c.json({ erro: "Informe ativa como verdadeiro ou falso." }, 400);
+
+  await c.env.DB.prepare(
+    "INSERT INTO transportadoras_ativas (transportadora, ativa, atualizado_em) VALUES (?, ?, datetime('now')) ON CONFLICT(transportadora) DO UPDATE SET ativa = excluded.ativa, atualizado_em = excluded.atualizado_em",
+  )
+    .bind(chave, corpo.ativa ? 1 : 0)
+    .run();
+  await registrarAuditoria(c.env.DB, admin.id, admin.id, corpo.ativa ? "transportadora_ligada" : "transportadora_desligada", chave);
+  return c.json({ ok: true });
+});
+
 adminRotas.get("/planos", async (c) => {
   const { results } = await c.env.DB.prepare(
     "SELECT id, nome, preco_centavos, limite_cotacoes_mes FROM planos ORDER BY preco_centavos, id",

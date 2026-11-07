@@ -16,6 +16,7 @@ import { criarNoCarrinho, type TransportadoraCarrinho } from "./enviar";
 import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { cancelarEtiquetaEnvia, gerarEtiquetaEnvia } from "../carriers/enviaEtiqueta";
 import { recusaCarrinho } from "../erros";
+import { transportadorasDesligadas } from "../cotacoes/rotas";
 
 export const carrinhoRotas = new Hono<{ Bindings: Env }>();
 
@@ -358,6 +359,9 @@ carrinhoRotas.post("/enviar", async (c) => {
   const transportadora = ORIGENS[servico.origem];
   if (!transportadora) {
     return c.json({ erro: `O envio ao carrinho da ${servico.origem} ainda não está disponível.` }, 400);
+  }
+  if ((await transportadorasDesligadas(c.env.DB)).includes(transportadora)) {
+    return c.json({ erro: `A ${servico.origem} está desativada no momento. Escolha outra transportadora.` }, 400);
   }
 
   const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
