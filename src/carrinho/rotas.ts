@@ -246,6 +246,7 @@ async function comprarEtiquetaEnvia(
       },
       carrier: String(servico.codigoTransportadora),
       service: String(servico.codigo),
+      agenciaOrigem: c.env.ENVIA_AGENCIA_ORIGEM,
     },
     { token, base: baseEnvia(c.env.ENVIA_AMBIENTE) },
   );
