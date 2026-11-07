@@ -207,6 +207,7 @@ function enderecoEnvia(p: Pessoa): EnderecoEnvia {
   return {
     name: p.name,
     email: p.email ?? "",
+    taxNumber: p.document.replace(/\D/g, ""),
     phone: p.phone.replace(/\D/g, ""),
     street: p.street,
     number: p.number || "S/N",
