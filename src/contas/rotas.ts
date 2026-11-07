@@ -153,7 +153,7 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
   }
 
   // 2) A Envia ignorou os filtros: busca mais agências e filtra pela cidade e UF do cadastro.
-  const ampla = await consultarAgencias(base, transportadora, token, new URLSearchParams({ type: "1", limitBranches: "5000" }));
+  const ampla = await consultarAgencias(base, transportadora, token, new URLSearchParams({ type: "1", allBranch: "true", limitBranches: "5000" }));
   if (!ampla.ok) {
     return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
   }
