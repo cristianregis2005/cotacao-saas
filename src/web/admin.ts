@@ -86,6 +86,16 @@ export const ADMIN_HTML = `<!doctype html>
       </table>
     </div>
 
+    <div class="cartao" id="secao-transportadoras">
+      <h2>Transportadoras</h2>
+      <p class="suave">Desligue uma transportadora para parar de cotá-la e de criar pedidos nela, para todos os clientes.</p>
+      <table>
+        <thead><tr><th>Transportadora</th><th>Situação</th><th></th></tr></thead>
+        <tbody id="linhas-transportadoras"></tbody>
+      </table>
+      <p class="msg" id="msg-transportadoras"></p>
+    </div>
+
     <section class="cartao" id="painel-dados" hidden>
       <div class="linha">
         <h2 id="titulo-dados">Dados do cliente</h2>
@@ -616,6 +626,43 @@ export const ADMIN_HTML = `<!doctype html>
     carregarHistorico();
   });
 
+  // ---- Transportadoras ligadas ou desligadas ----
+
+  function carregarTransportadoras() {
+    return api("/api/admin/transportadoras").then(function (r) {
+      var corpo = $("linhas-transportadoras");
+      corpo.textContent = "";
+      if (!r.ok) { mostrarMsgTransportadoras(r.dados.erro || "Não consegui carregar as transportadoras.", "erro"); return; }
+      r.dados.transportadoras.forEach(function (t) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(t.nome));
+        tr.appendChild(celula(t.ativa ? "Ligada" : "Desligada"));
+        var tdAcao = document.createElement("td");
+        var botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = t.ativa ? "secundario" : "";
+        botao.textContent = t.ativa ? "Desligar" : "Ligar";
+        botao.addEventListener("click", function () {
+          botao.disabled = true;
+          api("/api/admin/transportadoras/" + encodeURIComponent(t.chave), { ativa: !t.ativa }, "PUT").then(function (res) {
+            botao.disabled = false;
+            if (!res.ok) { mostrarMsgTransportadoras(res.dados.erro || "Não consegui alterar.", "erro"); return; }
+            mostrarMsgTransportadoras(t.nome + (t.ativa ? " desligada." : " ligada."), "ok");
+            carregarTransportadoras();
+          });
+        });
+        tdAcao.appendChild(botao);
+        tr.appendChild(tdAcao);
+        corpo.appendChild(tr);
+      });
+    });
+  }
+
+  function mostrarMsgTransportadoras(texto, tipo) {
+    $("msg-transportadoras").className = "msg " + (tipo || "");
+    $("msg-transportadoras").textContent = texto;
+  }
+
   function carregar() {
     return Promise.all([api("/api/admin/usuarios"), api("/api/admin/planos")]).then(function (res) {
       if (!res[0].ok || !res[1].ok) { acessoNegado("Não consegui carregar os dados."); return; }
@@ -624,6 +671,7 @@ export const ADMIN_HTML = `<!doctype html>
       desenharPlanos();
       desenharUsuarios(res[0].dados.usuarios);
       carregarHistorico();
+      carregarTransportadoras();
     });
   }
 

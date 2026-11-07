@@ -13,6 +13,12 @@ const texto = (v: unknown, max: number): string => (typeof v === "string" ? v.tr
 
 export const cotacaoRotas = new Hono<{ Bindings: Env }>();
 
+// Chaves das transportadoras que o administrador desligou.
+export async function transportadorasDesligadas(db: D1Database): Promise<string[]> {
+  const { results } = await db.prepare("SELECT transportadora FROM transportadoras_ativas WHERE ativa = 0").all<{ transportadora: string }>();
+  return results.map((r) => r.transportadora);
+}
+
 const numeroPositivo = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 const cepValido = (v: unknown): v is string => typeof v === "string" && v.replace(/\D/g, "").length === 8;
 
@@ -85,7 +91,8 @@ cotacaoRotas.post("/todas", async (c) => {
   )
     .bind(usuario.id)
     .first<Record<string, string | null>>();
-  const extras: ExtrasCotacao = { enviaBase: baseEnvia(c.env.ENVIA_AMBIENTE) };
+  const desligadas = await transportadorasDesligadas(c.env.DB);
+  const extras: ExtrasCotacao = { enviaBase: baseEnvia(c.env.ENVIA_AMBIENTE), desligadas };
   if (cadastro && cadastro.origem_logradouro && cadastro.origem_numero && cadastro.origem_bairro && cadastro.origem_cidade && cadastro.origem_uf && cadastro.origem_cep && cadastro.telefone) {
     extras.enviaOrigem = {
       name: cadastro.empresa || cadastro.nome || "Remetente",

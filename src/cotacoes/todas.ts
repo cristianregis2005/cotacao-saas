@@ -35,7 +35,16 @@ export interface ExtrasCotacao {
   enviaOrigem?: EnderecoEnvia | null; // cadastro do cliente
   enviaDestino?: EnderecoEnvia | null; // destinatário da nota fiscal
   enviaBase?: string; // endereço da API da Envia (sandbox ou produção)
+  desligadas?: string[]; // transportadoras desligadas no painel do administrador (chaves: superfrete, frenet...)
 }
+
+// Nome exibido -> chave usada no painel do administrador.
+export const CHAVE_DA_ORIGEM: Record<string, string> = {
+  SuperFrete: "superfrete",
+  Frenet: "frenet",
+  "Melhor Envio": "melhorenvio",
+  Envia: "envia",
+};
 
 export async function cotarTodas(
   entrada: EntradaFrete,
@@ -107,7 +116,8 @@ export async function cotarTodas(
     },
   ];
 
-  const resultados = await Promise.allSettled(tarefas.map((t) => t.executar()));
+  const ativas = tarefas.filter((t) => !(extras.desligadas ?? []).includes(CHAVE_DA_ORIGEM[t.nome]));
+  const resultados = await Promise.allSettled(ativas.map((t) => t.executar()));
   const cotacoes: CotacaoUnificada[] = [];
   const avisos: string[] = [];
 
@@ -116,8 +126,8 @@ export async function cotarTodas(
       cotacoes.push(...r.value);
     } else {
       const motivo = r.reason instanceof Error ? r.reason.message : String(r.reason);
-      console.log("[cotacao] " + tarefas[i].nome + ": " + motivo);
-      avisos.push(tarefas[i].nome + ": " + motivoAmigavel(tarefas[i].nome, motivo));
+      console.log("[cotacao] " + ativas[i].nome + ": " + motivo);
+      avisos.push(ativas[i].nome + ": " + motivoAmigavel(ativas[i].nome, motivo));
     }
   });
 
