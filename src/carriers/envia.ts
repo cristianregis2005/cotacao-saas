@@ -5,6 +5,11 @@ import { motivoAmigavel } from "../erros";
 export const ENVIA_BASE = "https://api.envia.com";
 export const ENVIA_BASE_TESTE = "https://api-test.envia.com";
 
+// Consultas (agências, transportadoras): host próprio da Envia.
+export function baseConsultasEnvia(ambiente?: string): string {
+  return ambiente === "teste" ? "https://queries.test.envia.com" : "https://queries.envia.com";
+}
+
 // Token de sandbox só funciona na sandbox, e token de produção só na API real (senão a Envia responde 401).
 export function baseEnvia(ambiente?: string): string {
   return ambiente === "teste" ? ENVIA_BASE_TESTE : ENVIA_BASE;

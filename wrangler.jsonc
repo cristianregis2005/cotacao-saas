@@ -18,8 +18,6 @@
     // Remetente no subdomínio verificado no Email Service (mail.cliquefrete.com.br).
     "EMAIL_REMETENTE": "nao-responda@mail.cliquefrete.com.br",
     // "producao" = API real da Envia (token de produção). Use "teste" só com token de sandbox.
-    "ENVIA_AMBIENTE": "producao",
-    // Código da agência de origem da Envia (teste). Depois deve vir de Meus dados.
-    "ENVIA_AGENCIA_ORIGEM": "BR66001916"
+    "ENVIA_AMBIENTE": "producao"
   }
 }

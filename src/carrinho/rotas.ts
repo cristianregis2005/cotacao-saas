@@ -220,6 +220,15 @@ function enderecoEnvia(p: Pessoa): EnderecoEnvia {
   };
 }
 
+// Agência de coleta que o cliente escolheu para esta transportadora da Envia.
+async function usuarioIdAgencia(db: D1Database, usuarioId: string, transportadora: string): Promise<string | null> {
+  const linha = await db
+    .prepare("SELECT branch_code FROM agencias_envia WHERE usuario_id = ? AND transportadora = ?")
+    .bind(usuarioId, transportadora)
+    .first<{ branch_code: string }>();
+  return linha ? linha.branch_code : null;
+}
+
 async function comprarEtiquetaEnvia(
   c: Context<{ Bindings: Env }>,
   usuarioId: string,
@@ -235,6 +244,11 @@ async function comprarEtiquetaEnvia(
   if (!dados.destinatario.email) {
     return c.json({ erro: "Informe o e-mail do destinatário para comprar a etiqueta na Envia." }, 400);
   }
+  const agenciaSalva = await usuarioIdAgencia(c.env.DB, usuarioId, String(servico.codigoTransportadora));
+  if (!agenciaSalva) {
+    return c.json({ erro: "Escolha a agência de coleta da Envia em Meus dados antes de comprar a etiqueta." }, 400);
+  }
+  const agencia = agenciaSalva;
   const resultado = await gerarEtiquetaEnvia(
     {
       nota: dados.semNota
@@ -252,7 +266,7 @@ async function comprarEtiquetaEnvia(
       },
       carrier: String(servico.codigoTransportadora),
       service: String(servico.codigo),
-      agenciaOrigem: c.env.ENVIA_AGENCIA_ORIGEM,
+      agenciaOrigem: agencia,
     },
     { token, base: baseEnvia(c.env.ENVIA_AMBIENTE) },
   );
