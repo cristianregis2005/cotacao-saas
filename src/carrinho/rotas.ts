@@ -244,14 +244,17 @@ async function comprarEtiquetaEnvia(
   if (!dados.destinatario.email) {
     return c.json({ erro: "Informe o e-mail do destinatário para comprar a etiqueta na Envia." }, 400);
   }
-  // Teste: para os Correios a etiqueta sai sem código de agência, e o pacote pode ser postado em qualquer agência.
-  // Para as outras transportadoras a agência escolhida em Meus dados continua obrigatória.
-  const agenciaSalva = await usuarioIdAgencia(c.env.DB, usuarioId, String(servico.codigoTransportadora));
-  const ehCorreios = String(servico.codigoTransportadora).toLowerCase().includes("correio");
-  if (!agenciaSalva && !ehCorreios) {
-    return c.json({ erro: "Escolha a agência de coleta da Envia em Meus dados antes de comprar a etiqueta." }, 400);
+  // Correios: a etiqueta sai sem código de agência e o pacote pode ser postado em qualquer agência.
+  // As outras transportadoras da Envia usam a agência escolhida em Meus dados.
+  const ehCorreios = String(servico.codigoTransportadora).toLowerCase() === "correios";
+  let agencia: string | undefined;
+  if (!ehCorreios) {
+    const agenciaSalva = await usuarioIdAgencia(c.env.DB, usuarioId, String(servico.codigoTransportadora));
+    if (!agenciaSalva) {
+      return c.json({ erro: "Escolha a agência de coleta da Envia em Meus dados antes de comprar a etiqueta." }, 400);
+    }
+    agencia = agenciaSalva;
   }
-  const agencia = agenciaSalva ?? undefined;
   const resultado = await gerarEtiquetaEnvia(
     {
       nota: dados.semNota

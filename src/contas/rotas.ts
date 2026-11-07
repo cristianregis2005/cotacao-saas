@@ -65,7 +65,7 @@ contaRotas.delete("/tokens/:transportadora", async (c) => {
 
 // ---- Agências de coleta da Envia (uma por transportadora, escolhida em Meus dados) ----
 
-const CODIGOS_AGENCIA = ["correios", "jadlog", "jtexpress", "loggi"];
+const CODIGOS_AGENCIA = ["jadlog", "jtexpress", "loggi"];
 
 contaRotas.get("/agencias", async (c) => {
   const usuario = await usuarioDaSessao(c);
