@@ -84,16 +84,20 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
   const transportadora = c.req.param("transportadora");
   if (!CODIGOS_AGENCIA.includes(transportadora)) return c.json({ erro: "Transportadora desconhecida." }, 404);
 
-  const cad = await c.env.DB.prepare("SELECT origem_cep FROM usuarios WHERE id = ?")
+  const cad = await c.env.DB.prepare("SELECT origem_cep, origem_cidade, origem_uf FROM usuarios WHERE id = ?")
     .bind(usuario.id)
-    .first<{ origem_cep: string | null }>();
+    .first<{ origem_cep: string | null; origem_cidade: string | null; origem_uf: string | null }>();
   const cep = (cad?.origem_cep ?? "").replace(/\D/g, "");
   if (cep.length !== 8) return c.json({ erro: "Complete o CEP de origem em Meus dados antes de buscar agências." }, 400);
 
   const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
   if (!credenciais.envia) return c.json({ erro: "Configure seu token da Envia em Minha conta." }, 400);
 
-  const url = baseConsultasEnvia(c.env.ENVIA_AMBIENTE) + "/branches/" + transportadora + "/BR?zipcode=" + cep + "&type=1";
+  // CEP, cidade e UF do cadastro. Tipo 1 = agências de origem. Limite de 10 para o cliente escolher.
+  const parametros = new URLSearchParams({ zipcode: cep, type: "1", limitBranches: "10" });
+  if (cad?.origem_cidade) parametros.set("locality", cad.origem_cidade);
+  if (cad?.origem_uf) parametros.set("state", cad.origem_uf);
+  const url = baseConsultasEnvia(c.env.ENVIA_AMBIENTE) + "/branches/" + transportadora + "/BR?" + parametros.toString();
   let resp: Response;
   try {
     resp = await fetch(url, { headers: { Authorization: "Bearer " + credenciais.envia.token, Accept: "application/json" } });
@@ -102,8 +106,8 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
     return c.json({ erro: "Não consegui falar com a Envia agora. Tente de novo." }, 502);
   }
   const bruto = await resp.text();
+  console.log("[agencias] " + transportadora + " " + url.replace(/zipcode=\d+/, "zipcode=***") + " -> HTTP " + resp.status + ": " + bruto.slice(0, 300));
   if (!resp.ok) {
-    console.log("[agencias] Envia HTTP " + resp.status + ": " + bruto.slice(0, 300));
     return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
   }
   let lista: unknown;
@@ -113,7 +117,7 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
     return c.json({ erro: "A Envia não respondeu como esperado." }, 502);
   }
   const agencias = Array.isArray(lista)
-    ? lista.slice(0, 50).map((a) => {
+    ? lista.slice(0, 10).map((a) => {
         const o = (a ?? {}) as Record<string, unknown>;
         const codigo = String(o.branch_code ?? "");
         return {
