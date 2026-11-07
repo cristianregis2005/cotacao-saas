@@ -108,7 +108,11 @@ export async function cotarTodas(
             largura: entrada.largura,
             altura: entrada.altura,
           },
-          { token: cred.token, base: extras.enviaBase },
+          {
+            token: cred.token,
+            base: extras.enviaBase,
+            desligadas: (extras.desligadas ?? []).filter((k) => k.startsWith("envia:")).map((k) => k.slice(6)),
+          },
         );
         avisosEnvia.push(...r.avisos);
         return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, prazoTexto: c.prazoTexto, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));

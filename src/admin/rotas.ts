@@ -58,16 +58,30 @@ adminRotas.get("/historico", async (c) => {
 
 // Transportadoras ligadas ou desligadas para a cotação de todos os clientes.
 const NOMES_PLATAFORMA: Record<string, string> = { superfrete: "SuperFrete", frenet: "Frenet", melhorenvio: "Melhor Envio", envia: "Envia" };
+// Transportadoras dentro da Envia: chave "envia:<código>". Cada uma pode ser desligada sem desligar a Envia inteira.
+const NOMES_ENVIA: Record<string, string> = { correios: "Correios", jadlog: "Jadlog", jtexpress: "J&T Express", loggi: "Loggi" };
+
+function chaveValida(chave: string): boolean {
+  if (chave in NOMES_PLATAFORMA) return true;
+  return chave.startsWith("envia:") && chave.slice(6) in NOMES_ENVIA;
+}
+
+function nomeDaChave(chave: string): string {
+  if (chave in NOMES_PLATAFORMA) return NOMES_PLATAFORMA[chave];
+  return "Envia · " + NOMES_ENVIA[chave.slice(6)];
+}
 
 adminRotas.get("/transportadoras", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT transportadora, ativa FROM transportadoras_ativas").all<{ transportadora: string; ativa: number }>();
   const porChave = new Map(results.map((r) => [r.transportadora, r.ativa === 1]));
   return c.json({
-    transportadoras: Object.keys(NOMES_PLATAFORMA).map((chave) => ({
-      chave,
-      nome: NOMES_PLATAFORMA[chave],
-      ativa: porChave.get(chave) ?? true,
-    })),
+    transportadoras: [
+      ...Object.keys(NOMES_PLATAFORMA).map((chave) => ({ chave, nome: nomeDaChave(chave), ativa: porChave.get(chave) ?? true, subordinada: false })),
+      ...Object.keys(NOMES_ENVIA).map((codigo) => {
+        const chave = "envia:" + codigo;
+        return { chave, nome: nomeDaChave(chave), ativa: porChave.get(chave) ?? true, subordinada: true };
+      }),
+    ],
   });
 });
 
@@ -75,7 +89,7 @@ adminRotas.put("/transportadoras/:chave", async (c) => {
   const admin = await usuarioDaSessao(c);
   if (!admin) return c.json({ erro: "Faça login." }, 401);
   const chave = c.req.param("chave");
-  if (!(chave in NOMES_PLATAFORMA)) return c.json({ erro: "Transportadora desconhecida." }, 404);
+  if (!chaveValida(chave)) return c.json({ erro: "Transportadora desconhecida." }, 404);
   const corpo = (await c.req.json<{ ativa?: unknown }>().catch(() => null)) ?? {};
   if (typeof corpo.ativa !== "boolean") return c.json({ erro: "Informe ativa como verdadeiro ou falso." }, 400);
 

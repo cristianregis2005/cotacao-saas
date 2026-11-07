@@ -360,8 +360,12 @@ carrinhoRotas.post("/enviar", async (c) => {
   if (!transportadora) {
     return c.json({ erro: `O envio ao carrinho da ${servico.origem} ainda não está disponível.` }, 400);
   }
-  if ((await transportadorasDesligadas(c.env.DB)).includes(transportadora)) {
+  const desligadas = await transportadorasDesligadas(c.env.DB);
+  if (desligadas.includes(transportadora)) {
     return c.json({ erro: `A ${servico.origem} está desativada no momento. Escolha outra transportadora.` }, 400);
+  }
+  if (transportadora === "envia" && servico.codigoTransportadora && desligadas.includes("envia:" + String(servico.codigoTransportadora))) {
+    return c.json({ erro: "Esta transportadora da Envia está desativada no momento. Escolha outra opção de frete." }, 400);
   }
 
   const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
