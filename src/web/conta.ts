@@ -210,7 +210,7 @@ export const CONTA_HTML = `<!doctype html>
 
   // ---- Agências de coleta da Envia ----
 
-  var NOMES_AGENCIA = { correios: "Correios", jadlog: "Jadlog", jtexpress: "J&T Express", loggi: "Loggi" };
+  var NOMES_AGENCIA = { jadlog: "Jadlog", jtexpress: "J&T Express", loggi: "Loggi" };
 
   function carregarAgencias() {
     api("/api/conta/agencias").then(function (r) {
