@@ -2,7 +2,7 @@
 
 > Comparador de fretes para quem envia pedidos. Reúne cotações da SuperFrete, Melhor Envio, Frenet e Envia, permite enviar a nota fiscal ao carrinho da transportadora escolhida, e o pagamento é feito no painel da transportadora.
 
-Empresa: MRP Sistemas (CNPJ 27.390.826/0002-41). Contato: contato@cliquefrete.com.br.
+Contato: contato@cliquefrete.com.br.
 O sistema fica em https://app.cliquefrete.com.br.
 
 ## Páginas
