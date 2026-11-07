@@ -2,7 +2,7 @@
 export async function registrarAuditoria(
   db: D1Database,
   adminId: string,
-  usuarioId: string,
+  usuarioId: string | null, // null = ação sem cliente afetado (ex.: plano, transportadora)
   acao: string,
   detalhe: string | null,
 ): Promise<void> {
