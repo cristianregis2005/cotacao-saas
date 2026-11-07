@@ -15,6 +15,8 @@ export const TRANSPORTADORAS_ENVIA = ["correios", "jadlog", "jtexpress", "totale
 
 export interface EnderecoEnvia {
   name: string;
+  company?: string;
+  phone_code?: string; // "BR" nos envios do Brasil
   email?: string; // obrigatório na compra de etiqueta para entrega em ponto de coleta
   identificationNumber?: string; // CPF ou CNPJ, só números (campo "identificationNumber" da Envia)
   phone: string;

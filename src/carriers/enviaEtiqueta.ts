@@ -18,7 +18,16 @@ export interface PacoteEtiqueta {
   itens: ItemEtiqueta[]; // a Envia recusa o pacote sem itens (Loggi); vem da nota ou da DC-e
 }
 
+export interface NotaEtiqueta {
+  chave: string;   // 44 números da NF-e
+  numero: string;
+  serie: string;
+  data: string;    // AAAA-MM-DD
+  valor: number;
+}
+
 export interface EntradaEtiqueta {
+  nota?: NotaEtiqueta | null; // sem nota (DC-e) não há xmlData
   origem: EnderecoEnvia;
   destino: EnderecoEnvia;
   pacote: PacoteEtiqueta;
@@ -84,17 +93,18 @@ function itensDoPacote(p: PacoteEtiqueta) {
   if (!itens.length) {
     return [{ description: "Mercadoria", quantity: 1, price: p.valorDeclarado }];
   }
-  return itens.map((i) => ({ description: i.descricao, quantity: i.quantidade, price: i.valorUnitario }));
+  return itens.map((i) => ({ description: i.descricao, productCode: "", quantity: i.quantidade, price: i.valorUnitario, currency: "BRL" }));
 }
 
 export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: OpcoesEtiqueta): Promise<ResultadoEtiqueta> {
   const p = entrada.pacote;
+  const nota = entrada.nota;
   const corpo = {
-    origin: { ...entrada.origem, country: "BR", ...(entrada.agenciaOrigem ? { branchCode: entrada.agenciaOrigem } : {}) },
-    destination: { ...entrada.destino, country: "BR" },
+    origin: { ...entrada.origem, country: "BR", phone_code: "BR", ...(entrada.agenciaOrigem ? { branchCode: entrada.agenciaOrigem } : {}) },
+    destination: { ...entrada.destino, country: "BR", phone_code: "BR" },
     packages: [{
       type: "box",
-      content: "Geral",
+      content: "Produtos comerciais",
       amount: 1,
       declaredValue: p.valorDeclarado,
       weightUnit: "KG",
@@ -102,6 +112,14 @@ export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: Opcoe
       weight: p.peso,
       dimensions: { length: p.comprimento, width: p.largura, height: p.altura },
       items: itensDoPacote(p),
+      ...(nota ? { xmlData: [{
+        documentType: "nfe",
+        nfeKey: nota.chave,
+        nfeNumber: nota.numero,
+        nfeSerie: nota.serie,
+        nfeDate: nota.data ? nota.data + "T12:00:00-03:00" : "",
+        nfeValue: nota.valor.toFixed(2),
+      }] } : {}),
     }],
     shipment: { type: 1, carrier: entrada.carrier, service: entrada.service },
     settings: { printFormat: "PDF", printSize: "STOCK_4X6", currency: "BRL", comments: "" },
