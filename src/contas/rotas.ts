@@ -79,6 +79,44 @@ contaRotas.get("/agencias", async (c) => {
 });
 
 // Busca as agências da transportadora perto do CEP de origem do cliente (tipo 1 = origem).
+// Consulta as agências na Envia. Devolve a lista ou o erro com o status HTTP.
+async function consultarAgencias(
+  base: string,
+  transportadora: string,
+  token: string,
+  parametros: URLSearchParams,
+): Promise<{ ok: true; lista: Record<string, unknown>[]; total: number } | { ok: false; status: number; corpo: string }> {
+  const url = base + "/branches/" + transportadora + "/BR?" + parametros.toString();
+  let resp: Response;
+  try {
+    resp = await fetch(url, { headers: { Authorization: "Bearer " + token, Accept: "application/json" } });
+  } catch (exc) {
+    console.log("[agencias] falha de conexão: " + String(exc));
+    return { ok: false, status: 0, corpo: "" };
+  }
+  const bruto = await resp.text();
+  console.log("[agencias] " + transportadora + " " + url.replace(/zipcode=\d+/, "zipcode=***") + " -> HTTP " + resp.status + " (" + bruto.length + " bytes)");
+  if (!resp.ok) return { ok: false, status: resp.status, corpo: bruto.slice(0, 300) };
+  let lista: unknown;
+  try {
+    lista = JSON.parse(bruto);
+  } catch {
+    return { ok: false, status: 200, corpo: bruto.slice(0, 300) };
+  }
+  const todas = Array.isArray(lista) ? (lista as Record<string, unknown>[]) : [];
+  return { ok: true, lista: todas, total: todas.length };
+}
+
+function descricaoAgencia(a: Record<string, unknown>): { branch_code: string; descricao: string; distancia: null } {
+  const codigo = String(a.branch_code ?? "");
+  const e = (a.address ?? {}) as Record<string, unknown>;
+  const endereco = [e.street, e.number].filter((x) => x !== undefined && x !== null && String(x) !== "").join(", ");
+  const descricao = [a.reference, endereco].filter((x) => x !== undefined && x !== null && String(x) !== "").join(" · ");
+  return { branch_code: codigo, descricao: descricao || codigo, distancia: null };
+}
+
+// Busca as agências de origem perto do cliente. Primeiro usa a busca normal da Envia (como antes).
+// Se ela não trouxer nenhuma agência da UF do cliente (caso da Correios), busca mais e filtra pela cidade.
 contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Faça login." }, 401);
@@ -90,52 +128,43 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
     .first<{ origem_cep: string | null; origem_cidade: string | null; origem_uf: string | null }>();
   const cep = (cad?.origem_cep ?? "").replace(/\D/g, "");
   if (cep.length !== 8) return c.json({ erro: "Complete o CEP de origem em Meus dados antes de buscar agências." }, 400);
+  const cidade = (cad?.origem_cidade ?? "").trim();
+  const uf = (cad?.origem_uf ?? "").trim().toUpperCase();
 
   const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuario.id);
   if (!credenciais.envia) return c.json({ erro: "Configure seu token da Envia em Minha conta." }, 400);
+  const base = baseConsultasEnvia(c.env.ENVIA_AMBIENTE);
+  const token = credenciais.envia.token;
 
-  // CEP, cidade e UF do cadastro. Tipo 1 = agências de origem. Limite de 10 para o cliente escolher.
-  // A Envia ignora os filtros de CEP, cidade e UF para a Correios: então buscamos mais agências e filtramos aqui.
-  const parametros = new URLSearchParams({ zipcode: cep, type: "1", limitBranches: "5000" });
-  if (cad?.origem_cidade) parametros.set("locality", cad.origem_cidade);
-  if (cad?.origem_uf) parametros.set("state", cad.origem_uf);
-  const url = baseConsultasEnvia(c.env.ENVIA_AMBIENTE) + "/branches/" + transportadora + "/BR?" + parametros.toString();
-  let resp: Response;
-  try {
-    resp = await fetch(url, { headers: { Authorization: "Bearer " + credenciais.envia.token, Accept: "application/json" } });
-  } catch (exc) {
-    console.log("[agencias] falha de conexão: " + String(exc));
-    return c.json({ erro: "Não consegui falar com a Envia agora. Tente de novo." }, 502);
-  }
-  const bruto = await resp.text();
-  console.log("[agencias] " + transportadora + " " + url.replace(/zipcode=\d+/, "zipcode=***") + " -> HTTP " + resp.status + ": " + bruto.slice(0, 300));
-  if (!resp.ok) {
+  // 1) Busca normal da Envia, com CEP, cidade e UF, limitada a 10.
+  const normal = new URLSearchParams({ zipcode: cep, type: "1", limitBranches: "10" });
+  if (cidade) normal.set("locality", cidade);
+  if (uf) normal.set("state", uf);
+  const primeira = await consultarAgencias(base, transportadora, token, normal);
+  if (!primeira.ok) {
+    if (primeira.status === 0) return c.json({ erro: "Não consegui falar com a Envia agora. Tente de novo." }, 502);
+    console.log("[agencias] " + transportadora + " recusou: " + primeira.corpo);
     return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
   }
-  let lista: unknown;
-  try {
-    lista = JSON.parse(bruto);
-  } catch {
-    return c.json({ erro: "A Envia não respondeu como esperado." }, 502);
+  const daUf = primeira.lista.filter((a) => String((((a.address ?? {}) as Record<string, unknown>).state) ?? "").toUpperCase() === uf);
+  if (daUf.length > 0) {
+    console.log("[agencias] " + transportadora + ": busca normal trouxe " + daUf.length + " agências de " + uf);
+    return c.json({ agencias: daUf.slice(0, 10).map(descricaoAgencia).filter((a) => a.branch_code) });
   }
-  const uf = (cad?.origem_uf ?? "").trim().toUpperCase();
-  const cidadeSlug = slug(cad?.origem_cidade ?? "");
-  const todas = Array.isArray(lista) ? (lista as Record<string, unknown>[]) : [];
-  const daCidade = todas.filter((a) => {
-    const e = (a.address ?? {}) as Record<string, unknown>;
-    const estado = String(e.state ?? "").toUpperCase();
-    return !!cidadeSlug && estado === uf && (slug(String(e.city ?? "")) === cidadeSlug || slug(String(e.locality ?? "")) === cidadeSlug);
-  });
-  console.log("[agencias] " + transportadora + ": " + daCidade.length + " agências em " + (cad?.origem_cidade ?? "?") + "/" + uf + " de " + todas.length + " devolvidas");
 
-  const agencias = daCidade.slice(0, 10).map((a) => {
-    const codigo = String(a.branch_code ?? "");
+  // 2) A Envia ignorou os filtros: busca mais agências e filtra pela cidade e UF do cadastro.
+  const ampla = await consultarAgencias(base, transportadora, token, new URLSearchParams({ type: "1", limitBranches: "5000" }));
+  if (!ampla.ok) {
+    return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
+  }
+  const chaveCidade = slug(cidade);
+  const daCidade = ampla.lista.filter((a) => {
     const e = (a.address ?? {}) as Record<string, unknown>;
-    const endereco = [e.street, e.number].filter((x) => x !== undefined && x !== null && String(x) !== "").join(", ");
-    const descricao = [a.reference, endereco].filter((x) => x !== undefined && x !== null && String(x) !== "").join(" · ");
-    return { branch_code: codigo, descricao: descricao || codigo, distancia: null };
-  }).filter((a) => a.branch_code);
-  return c.json({ agencias });
+    if (!chaveCidade || String(e.state ?? "").toUpperCase() !== uf) return false;
+    return slug(String(e.city ?? "")) === chaveCidade || slug(String(e.locality ?? "")) === chaveCidade;
+  });
+  console.log("[agencias] " + transportadora + ": busca ampla achou " + daCidade.length + " agências em " + cidade + "/" + uf + " de " + ampla.total + " devolvidas");
+  return c.json({ agencias: daCidade.slice(0, 10).map(descricaoAgencia).filter((a) => a.branch_code) });
 });
 
 contaRotas.put("/agencias/:transportadora", async (c) => {
