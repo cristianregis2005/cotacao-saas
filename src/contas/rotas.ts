@@ -9,6 +9,7 @@ import { garantirFranquiaUnica } from "../auth/identidade";
 import { deleteCookie } from "hono/cookie";
 import { baseConsultasEnvia } from "../carriers/envia";
 import { lerCredenciais } from "./tokens";
+import { slug } from "../transportadoras/chaves";
 
 export const contaRotas = new Hono<{ Bindings: Env }>();
 
@@ -94,7 +95,8 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
   if (!credenciais.envia) return c.json({ erro: "Configure seu token da Envia em Minha conta." }, 400);
 
   // CEP, cidade e UF do cadastro. Tipo 1 = agências de origem. Limite de 10 para o cliente escolher.
-  const parametros = new URLSearchParams({ zipcode: cep, type: "1", limitBranches: "10" });
+  // A Envia ignora os filtros de CEP, cidade e UF para a Correios: então buscamos mais agências e filtramos aqui.
+  const parametros = new URLSearchParams({ zipcode: cep, type: "1", limitBranches: "5000" });
   if (cad?.origem_cidade) parametros.set("locality", cad.origem_cidade);
   if (cad?.origem_uf) parametros.set("state", cad.origem_uf);
   const url = baseConsultasEnvia(c.env.ENVIA_AMBIENTE) + "/branches/" + transportadora + "/BR?" + parametros.toString();
@@ -116,17 +118,23 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
   } catch {
     return c.json({ erro: "A Envia não respondeu como esperado." }, 502);
   }
-  const agencias = Array.isArray(lista)
-    ? lista.slice(0, 10).map((a) => {
-        const o = (a ?? {}) as Record<string, unknown>;
-        const codigo = String(o.branch_code ?? "");
-        return {
-          branch_code: codigo,
-          descricao: String(o.reference ?? codigo),
-          distancia: typeof o.distance === "number" ? o.distance : null,
-        };
-      }).filter((a) => a.branch_code)
-    : [];
+  const uf = (cad?.origem_uf ?? "").trim().toUpperCase();
+  const cidadeSlug = slug(cad?.origem_cidade ?? "");
+  const todas = Array.isArray(lista) ? (lista as Record<string, unknown>[]) : [];
+  const daCidade = todas.filter((a) => {
+    const e = (a.address ?? {}) as Record<string, unknown>;
+    const estado = String(e.state ?? "").toUpperCase();
+    return !!cidadeSlug && estado === uf && (slug(String(e.city ?? "")) === cidadeSlug || slug(String(e.locality ?? "")) === cidadeSlug);
+  });
+  console.log("[agencias] " + transportadora + ": " + daCidade.length + " agências em " + (cad?.origem_cidade ?? "?") + "/" + uf + " de " + todas.length + " devolvidas");
+
+  const agencias = daCidade.slice(0, 10).map((a) => {
+    const codigo = String(a.branch_code ?? "");
+    const e = (a.address ?? {}) as Record<string, unknown>;
+    const endereco = [e.street, e.number].filter((x) => x !== undefined && x !== null && String(x) !== "").join(", ");
+    const descricao = [a.reference, endereco].filter((x) => x !== undefined && x !== null && String(x) !== "").join(" · ");
+    return { branch_code: codigo, descricao: descricao || codigo, distancia: null };
+  }).filter((a) => a.branch_code);
   return c.json({ agencias });
 });
 
