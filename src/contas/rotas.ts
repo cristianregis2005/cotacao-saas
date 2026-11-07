@@ -107,6 +107,26 @@ async function consultarAgencias(
   return { ok: true, lista: todas, total: todas.length };
 }
 
+// Descobre latitude e longitude da cidade pelo OpenStreetMap (Nominatim). Devolve null se falhar.
+async function geocodificarCidade(cidade: string, uf: string): Promise<{ latitude: number; longitude: number } | null> {
+  const consulta = encodeURIComponent(cidade + ", " + uf + ", Brasil");
+  try {
+    const resp = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=" + consulta, {
+      headers: { "User-Agent": "CliqueFrete/1.0", Accept: "application/json" },
+    });
+    if (!resp.ok) {
+      console.log("[agencias] geocodificação falhou: HTTP " + resp.status);
+      return null;
+    }
+    const lista = (await resp.json()) as { lat: string; lon: string }[];
+    if (!lista.length) return null;
+    return { latitude: Number(lista[0].lat), longitude: Number(lista[0].lon) };
+  } catch (exc) {
+    console.log("[agencias] geocodificação falhou: " + String(exc));
+    return null;
+  }
+}
+
 function descricaoAgencia(a: Record<string, unknown>): { branch_code: string; descricao: string; distancia: null } {
   const codigo = String(a.branch_code ?? "");
   const e = (a.address ?? {}) as Record<string, unknown>;
@@ -152,7 +172,22 @@ contaRotas.get("/agencias/buscar/:transportadora", async (c) => {
     return c.json({ agencias: daUf.slice(0, 10).map(descricaoAgencia).filter((a) => a.branch_code) });
   }
 
-  // 2) A Envia ignorou os filtros: busca mais agências e filtra pela cidade e UF do cadastro.
+  // 2) Busca pela localização: a Envia devolve as agências mais próximas (até 50 km), da mais perto para a mais longe.
+  const coordenadas = cidade && uf ? await geocodificarCidade(cidade, uf) : null;
+  if (coordenadas) {
+    const proximas = await consultarAgencias(base, transportadora, token, new URLSearchParams({
+      type: "1",
+      latitude: String(coordenadas.latitude),
+      longitude: String(coordenadas.longitude),
+      limitBranches: "10",
+    }));
+    if (proximas.ok && proximas.lista.length > 0) {
+      console.log("[agencias] " + transportadora + ": busca por localização trouxe " + proximas.lista.length + " agências próximas de " + cidade + "/" + uf);
+      return c.json({ agencias: proximas.lista.slice(0, 10).map(descricaoAgencia).filter((a) => a.branch_code) });
+    }
+  }
+
+  // 3) Última tentativa: busca ampla e filtro pela cidade e UF do cadastro.
   const ampla = await consultarAgencias(base, transportadora, token, new URLSearchParams({ type: "1", allBranch: "true", limitBranches: "5000" }));
   if (!ampla.ok) {
     return c.json({ erro: "A Envia não retornou as agências desta transportadora agora." }, 502);
