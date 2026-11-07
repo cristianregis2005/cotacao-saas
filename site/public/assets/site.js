@@ -52,3 +52,33 @@
   var ano = document.getElementById("ano-atual");
   if (ano) ano.textContent = new Date().getFullYear();
 })();
+
+
+// Menu do celular: abre e fecha a navegação principal.
+(function () {
+  var topo = document.querySelector(".topo");
+  var botao = document.querySelector(".menu-botao");
+  var nav = document.getElementById("nav-principal");
+  if (!topo || !botao || !nav) return;
+
+  topo.classList.add("tem-menu");
+
+  function definir(aberto) {
+    topo.classList.toggle("menu-aberto", aberto);
+    botao.setAttribute("aria-expanded", aberto ? "true" : "false");
+    botao.setAttribute("aria-label", aberto ? "Fechar menu" : "Abrir menu");
+  }
+
+  botao.addEventListener("click", function () {
+    definir(botao.getAttribute("aria-expanded") !== "true");
+  });
+  nav.addEventListener("click", function (e) {
+    if (e.target.closest("a")) definir(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && topo.classList.contains("menu-aberto")) {
+      definir(false);
+      botao.focus();
+    }
+  });
+})();
