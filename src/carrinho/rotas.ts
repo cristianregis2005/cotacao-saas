@@ -17,6 +17,7 @@ import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { cancelarEtiquetaEnvia, gerarEtiquetaEnvia } from "../carriers/enviaEtiqueta";
 import { recusaCarrinho } from "../erros";
 import { transportadorasDesligadas } from "../cotacoes/rotas";
+import { chaveTransportadora } from "../transportadoras/chaves";
 
 export const carrinhoRotas = new Hono<{ Bindings: Env }>();
 
@@ -364,7 +365,8 @@ carrinhoRotas.post("/enviar", async (c) => {
   if (desligadas.includes(transportadora)) {
     return c.json({ erro: `A ${servico.origem} está desativada no momento. Escolha outra transportadora.` }, 400);
   }
-  if (transportadora === "envia" && servico.codigoTransportadora && desligadas.includes("envia:" + String(servico.codigoTransportadora))) {
+  const chaveServico = chaveTransportadora(servico.origem, servico.codigoTransportadora, servico.transportadora);
+  if (chaveServico && desligadas.includes(chaveServico)) {
     return c.json({ erro: "Esta transportadora da Envia está desativada no momento. Escolha outra opção de frete." }, 400);
   }
 

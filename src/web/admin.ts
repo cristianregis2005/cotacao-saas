@@ -88,7 +88,7 @@ export const ADMIN_HTML = `<!doctype html>
 
     <div class="cartao" id="secao-transportadoras">
       <h2>Transportadoras</h2>
-      <p class="suave">Desligue uma plataforma inteira ou só uma transportadora da Envia, para todos os clientes. Desligada, ela não é cotada e não aceita pedido.</p>
+      <p class="suave">Desligue uma plataforma inteira ou uma transportadora dentro dela, para todos os clientes. A lista de transportadoras aparece conforme elas são cotadas. Desligada, ela não é cotada e não aceita pedido.</p>
       <table>
         <thead><tr><th>Transportadora</th><th>Situação</th><th></th></tr></thead>
         <tbody id="linhas-transportadoras"></tbody>

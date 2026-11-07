@@ -7,11 +7,36 @@ import { lerCredenciais } from "../contas/tokens";
 import { registrarCotacao, verificarLimite } from "../planos";
 import { cotarTodas, type ExtrasCotacao } from "./todas";
 import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
+import { chaveTransportadora } from "../transportadoras/chaves";
 
 const digitos = (v: unknown): string => (typeof v === "string" ? v.replace(/\D/g, "") : "");
 const texto = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export const cotacaoRotas = new Hono<{ Bindings: Env }>();
+
+// Guarda as transportadoras que apareceram nas cotações (lista do painel do administrador). Falha não derruba a cotação.
+async function registrarVistas(db: D1Database, cotacoes: { origem: string; transportadora?: string; codigoTransportadora?: string | number }[]): Promise<void> {
+  try {
+    const porChave = new Map<string, { plataforma: string; nome: string }>();
+    for (const c of cotacoes) {
+      const chave = chaveTransportadora(c.origem, c.codigoTransportadora, c.transportadora);
+      if (!chave || chave.indexOf(":") < 0) continue;
+      porChave.set(chave, { plataforma: chave.split(":")[0], nome: c.transportadora ?? chave.split(":")[1] });
+    }
+    if (!porChave.size) return;
+    await db.batch(
+      [...porChave.entries()].map(([chave, v]) =>
+        db
+          .prepare(
+            "INSERT INTO transportadoras_vistas (chave, plataforma, nome) VALUES (?, ?, ?) ON CONFLICT(chave) DO UPDATE SET nome = excluded.nome, visto_em = datetime('now')",
+          )
+          .bind(chave, v.plataforma, v.nome),
+      ),
+    );
+  } catch (exc) {
+    console.log("[cotacao] não registrei as transportadoras vistas: " + String(exc));
+  }
+}
 
 // Chaves das transportadoras que o administrador desligou.
 export async function transportadorasDesligadas(db: D1Database): Promise<string[]> {
@@ -121,6 +146,7 @@ cotacaoRotas.post("/todas", async (c) => {
   }
 
   const resultado = await cotarTodas(entrada, credenciais as Parameters<typeof cotarTodas>[1], extras);
+  await registrarVistas(c.env.DB, resultado.cotacoes);
 
   // Histórico da cotação. Se o registro falhar, a cotação continua funcionando.
   const precos = resultado.cotacoes.map((x) => x.preco);
