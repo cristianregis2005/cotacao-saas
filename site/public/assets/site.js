@@ -45,3 +45,10 @@
     });
   });
 })();
+
+
+// Atualiza o ano do rodape automaticamente.
+(function () {
+  var ano = document.getElementById("ano-atual");
+  if (ano) ano.textContent = new Date().getFullYear();
+})();
