@@ -10,8 +10,9 @@ export function baseEnvia(ambiente?: string): string {
   return ambiente === "teste" ? ENVIA_BASE_TESTE : ENVIA_BASE;
 }
 
-// "loggi" ainda não foi confirmada em produção (igual ao app Python).
-export const TRANSPORTADORAS_ENVIA = ["correios", "jadlog", "jtexpress", "totalexpress", "loggi"] as const;
+// Só envio por agência (drop off). Total Express fica fora: exige solicitação de coleta (pendente).
+// "loggi" já confirmada em produção.
+export const TRANSPORTADORAS_ENVIA = ["correios", "jadlog", "jtexpress", "loggi"] as const;
 
 export interface EnderecoEnvia {
   name: string;
