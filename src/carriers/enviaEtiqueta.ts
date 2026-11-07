@@ -24,6 +24,7 @@ export interface EntradaEtiqueta {
   pacote: PacoteEtiqueta;
   carrier: string;   // código da transportadora na Envia (ex.: jadlog)
   service: string;   // código do serviço na Envia, vindo da cotação
+  agenciaOrigem?: string; // código da agência de origem (exigido pela Envia no serviço branch to home)
 }
 
 export interface OpcoesEtiqueta {
@@ -89,7 +90,7 @@ function itensDoPacote(p: PacoteEtiqueta) {
 export async function gerarEtiquetaEnvia(entrada: EntradaEtiqueta, opcoes: OpcoesEtiqueta): Promise<ResultadoEtiqueta> {
   const p = entrada.pacote;
   const corpo = {
-    origin: { ...entrada.origem, country: "BR" },
+    origin: { ...entrada.origem, country: "BR", ...(entrada.agenciaOrigem ? { branchCode: entrada.agenciaOrigem } : {}) },
     destination: { ...entrada.destino, country: "BR" },
     packages: [{
       type: "box",
