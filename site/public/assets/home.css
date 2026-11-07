@@ -365,3 +365,21 @@ h1, h2, .cta-final h2 { text-wrap: balance; }
 .secao-como .link-seta:hover { color: white; }
 .secao-como .botao { box-shadow: 0 8px 22px rgba(0,0,0,.25); }
 .secao-como :focus-visible { outline-color: white; }
+
+/* Entrada do hero: acontece uma vez ao carregar a página, só com CSS.
+   Os elementos começam visíveis por padrão; a animação só os traz de leve. */
+@keyframes hero-sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes hero-cartao { from { opacity: 0; transform: translateY(22px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes hero-selo { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: none; } }
+.hero-copy > * { animation: hero-sobe .6s cubic-bezier(.2,.7,.2,1) both; }
+.hero-copy > :nth-child(2) { animation-delay: .06s; }
+.hero-copy > :nth-child(3) { animation-delay: .14s; }
+.hero-copy > :nth-child(4) { animation-delay: .2s; }
+.hero-copy > :nth-child(5) { animation-delay: .26s; }
+.hero-copy > :nth-child(6) { animation-delay: .32s; }
+.visual-card { animation: hero-cartao .8s cubic-bezier(.2,.7,.2,1) .18s both; }
+.hero-visual > .visual-legenda { animation: hero-sobe .6s ease .5s both; }
+.visual-bolha { animation: hero-selo .5s cubic-bezier(.2,.8,.3,1.2) .75s both; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-copy > *, .visual-card, .hero-visual > .visual-legenda, .visual-bolha { animation: none; }
+}
