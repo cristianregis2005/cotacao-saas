@@ -67,6 +67,7 @@ export interface EntradaEnvia {
 export interface OpcoesEnvia {
   token: string;
   base?: string; // endereço da API (produção ou sandbox)
+  desligadas?: string[]; // transportadoras da Envia desligadas no painel (correios, jadlog...)
   fetchFn?: typeof fetch;
 }
 
@@ -153,7 +154,7 @@ export async function cotarEnvia(
   opcoes: OpcoesEnvia,
 ): Promise<{ cotacoes: CotacaoEnvia[]; avisos: string[] }> {
   const resultados = await Promise.all(
-    TRANSPORTADORAS_ENVIA.map(async (t) => ({ transportadora: t, resultado: await consultar(t, entrada, opcoes) })),
+    TRANSPORTADORAS_ENVIA.filter((t) => !(opcoes.desligadas ?? []).includes(t)).map(async (t) => ({ transportadora: t, resultado: await consultar(t, entrada, opcoes) })),
   );
 
   const cotacoes: CotacaoEnvia[] = [];

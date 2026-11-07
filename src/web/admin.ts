@@ -88,7 +88,7 @@ export const ADMIN_HTML = `<!doctype html>
 
     <div class="cartao" id="secao-transportadoras">
       <h2>Transportadoras</h2>
-      <p class="suave">Desligue uma transportadora para parar de cotá-la e de criar pedidos nela, para todos os clientes.</p>
+      <p class="suave">Desligue uma plataforma inteira ou só uma transportadora da Envia, para todos os clientes. Desligada, ela não é cotada e não aceita pedido.</p>
       <table>
         <thead><tr><th>Transportadora</th><th>Situação</th><th></th></tr></thead>
         <tbody id="linhas-transportadoras"></tbody>
@@ -635,7 +635,9 @@ export const ADMIN_HTML = `<!doctype html>
       if (!r.ok) { mostrarMsgTransportadoras(r.dados.erro || "Não consegui carregar as transportadoras.", "erro"); return; }
       r.dados.transportadoras.forEach(function (t) {
         var tr = document.createElement("tr");
-        tr.appendChild(celula(t.nome));
+        var nomeCelula = celula(t.nome);
+        if (t.subordinada) nomeCelula.style.paddingLeft = "28px";
+        tr.appendChild(nomeCelula);
         tr.appendChild(celula(t.ativa ? "Ligada" : "Desligada"));
         var tdAcao = document.createElement("td");
         var botao = document.createElement("button");
