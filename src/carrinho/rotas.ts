@@ -235,6 +235,9 @@ async function comprarEtiquetaEnvia(
   }
   const resultado = await gerarEtiquetaEnvia(
     {
+      nota: dados.semNota
+        ? null
+        : { chave: dados.chave, numero: dados.nota.numero, serie: dados.nota.serie, data: dados.nota.data, valor: dados.valorDeclarado ?? 0 },
       origem: enderecoEnvia(dados.remetente),
       destino: enderecoEnvia(dados.destinatario),
       pacote: {
