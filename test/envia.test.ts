@@ -30,6 +30,6 @@ describe("cotarEnvia", () => {
 
     const r = await cotarEnvia(entrada, { token: "t", fetchFn });
     expect(r.cotacoes).toHaveLength(TRANSPORTADORAS_ENVIA.length - 1);
-    expect(r.avisos).toEqual([expect.stringContaining("Envia (loggi): HTTP 422")]);
+    expect(r.avisos).toEqual([expect.stringContaining("Envia (loggi): A Envia não respondeu como esperado")]);
   });
 });

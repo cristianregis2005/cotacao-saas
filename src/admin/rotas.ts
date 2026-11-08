@@ -5,6 +5,7 @@ import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import { ehTransportadora, listarTokens, NOMES, removerToken, salvarToken, TRANSPORTADORAS } from "../contas/tokens";
 import { validarPlano } from "./planos";
+import { aplicarPlano } from "../planos";
 import { registrarAuditoria } from "./auditoria";
 import { validarDados } from "../contas/dados";
 import { garantirFranquiaUnica } from "../auth/identidade";
@@ -190,9 +191,8 @@ adminRotas.post("/usuarios/:id/plano", async (c) => {
   if (!plano) return c.json({ erro: "Esse plano não existe." }, 404);
 
   const clienteId = c.req.param("id");
-  await c.env.DB.prepare("UPDATE usuarios SET plano_id = ? WHERE id = ?")
-    .bind(planoId, clienteId)
-    .run();
+  // O prazo de acesso acompanha o plano: gratuito 7 dias, pago 30 dias, sem franquia não dá acesso.
+  await aplicarPlano(c.env.DB, clienteId, planoId);
   await registrarAuditoria(c.env.DB, admin.id, clienteId, "plano_alterado", planoId);
   return c.json({ ok: true });
 });

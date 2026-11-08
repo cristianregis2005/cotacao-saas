@@ -43,7 +43,7 @@ describe("montarPedidoSuperFrete", () => {
   it("usa a chave da nota como nota fiscal e o código do serviço como número", () => {
     const p = montarPedidoSuperFrete(dados(), VOLUME, { origem: "SuperFrete", codigo: "17", preco: 20 });
     expect(p.service).toBe(17);
-    expect(p.options.invoice.number).toBe(CHAVE);
+    expect(p.options.invoice?.number).toBe(CHAVE);
     expect(p.to.document).toBe("52998224725");
     expect(p.from.name).toBe("Loja Exemplo Ltda");
   });
@@ -68,7 +68,7 @@ describe("montarCarrinhoME", () => {
     expect(p.from.company_document).toBe("12345678000195");
     expect(p.from.document).toBe("");
     expect(p.to.document).toBe("52998224725");
-    expect(p.options.invoice.key).toBe(CHAVE);
+    expect(p.options.invoice?.key).toBe(CHAVE);
     expect(p.products[0]).toEqual({ name: "Linha 100g", quantity: "2", unitary_value: "75.00" });
     expect(p.volumes[0].height).toBe(15); // arredondado para cima
   });
@@ -83,7 +83,7 @@ describe("montarPedidoFrenet", () => {
     expect(pedido.Quotation.ShippingServiceCode).toBe("1");
     expect(pedido.Quotation.CarrierCode).toBe("2");
     expect(pedido.Quotation.ShippingPrice).toBe(10);
-    expect(pedido.Order.Invoice.Key).toBe(CHAVE);
+    expect(pedido.Order.Invoice?.Key).toBe(CHAVE);
   });
 });
 
@@ -119,7 +119,7 @@ describe("criarNoCarrinho", () => {
     const fetchFn = (async () => { tentativas++; throw new Error("rede caiu"); }) as typeof fetch;
     await expect(
       criarNoCarrinho("superfrete", { any: 1 }, { token: "t", contato: "c", fetchFn }),
-    ).rejects.toThrow(/pode ter sido criado/);
+    ).rejects.toThrow(/se o pedido foi criado/);
     expect(tentativas).toBe(1);
   });
 

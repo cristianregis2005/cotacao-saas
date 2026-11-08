@@ -192,7 +192,7 @@ export const ADMIN_HTML = `<!doctype html>
     <div class="cartao">
       <h2>Planos</h2>
       <table>
-        <thead><tr><th>Código</th><th>Nome</th><th>Preço</th><th>Limite</th><th></th></tr></thead>
+        <thead><tr><th>Código</th><th>Nome</th><th>Preço</th><th>Acesso</th><th></th></tr></thead>
         <tbody id="linhas-planos"></tbody>
       </table>
     </div>
@@ -209,9 +209,7 @@ export const ADMIN_HTML = `<!doctype html>
         <label>Preço mensal (R$)
           <input id="plano-preco" inputmode="decimal" placeholder="0,00" required>
         </label>
-        <label>Cotações por mês (vazio = ilimitado)
-          <input id="plano-limite" inputmode="numeric" placeholder="ilimitado">
-        </label>
+        <p class="ajuda">Acesso por prazo: gratuito 7 dias; planos pagos 30 dias; sem limite de cotações.</p>
       </div>
       <button type="submit" id="btn-salvar-plano">Salvar plano</button>
       <button type="button" class="secundario" id="btn-cancelar" hidden>Cancelar edição</button>
@@ -246,8 +244,8 @@ export const ADMIN_HTML = `<!doctype html>
     return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function descricaoLimite(limite) {
-    return limite == null ? "ilimitado" : limite + " por mês";
+  function descricaoLimite() {
+    return "Acesso por prazo";
   }
 
   function celula(texto) {
@@ -269,7 +267,7 @@ export const ADMIN_HTML = `<!doctype html>
       planos.forEach(function (p) {
         var op = document.createElement("option");
         op.value = p.id;
-        op.textContent = p.nome + " (" + descricaoLimite(p.limite_cotacoes_mes) + ")";
+        op.textContent = p.nome + " (" + descricaoLimite() + ")";
         if (p.id === (u.plano_id || "gratuito")) op.selected = true;
         select.appendChild(op);
       });
@@ -318,7 +316,7 @@ export const ADMIN_HTML = `<!doctype html>
       tr.appendChild(celula(p.id));
       tr.appendChild(celula(p.nome));
       tr.appendChild(celula(reais(p.preco_centavos)));
-      tr.appendChild(celula(descricaoLimite(p.limite_cotacoes_mes)));
+      tr.appendChild(celula(descricaoLimite()));
       var tdAcao = document.createElement("td");
       var botao = document.createElement("button");
       botao.type = "button";
@@ -338,7 +336,6 @@ export const ADMIN_HTML = `<!doctype html>
     $("plano-id").disabled = true;
     $("plano-nome").value = p.nome;
     $("plano-preco").value = (p.preco_centavos / 100).toFixed(2).replace(".", ",");
-    $("plano-limite").value = p.limite_cotacoes_mes == null ? "" : String(p.limite_cotacoes_mes);
     $("btn-cancelar").hidden = false;
     $("btn-salvar-plano").textContent = "Salvar alterações";
   }
@@ -363,12 +360,11 @@ export const ADMIN_HTML = `<!doctype html>
       $("msg-plano").textContent = "Informe o preço mensal.";
       return;
     }
-    var limiteTexto = $("plano-limite").value.trim();
     var corpo = {
       id: $("plano-id").value.trim(),
       nome: $("plano-nome").value.trim(),
       preco_centavos: preco,
-      limite_cotacoes_mes: limiteTexto === "" ? null : Number(limiteTexto)
+      limite_cotacoes_mes: null
     };
     var caminho = editando ? "/api/admin/planos/" + encodeURIComponent(corpo.id) : "/api/admin/planos";
     var metodo = editando ? "PUT" : "POST";
