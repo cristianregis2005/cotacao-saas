@@ -2,6 +2,7 @@
 import { Hono, type Context } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
+import { verificarAcesso } from "../planos";
 import { lerCredenciais, NOMES, type Transportadora } from "../contas/tokens";
 import { lerNfe, type DadosNfe, type ItemNota, type Pessoa } from "./nfe";
 import {
@@ -359,6 +360,16 @@ carrinhoRotas.post("/ler-nfe", async (c) => {
 carrinhoRotas.post("/enviar", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
+  if (!acesso.permitido) {
+    const erro =
+      acesso.motivo === "plano_inexistente"
+        ? "Seu plano não está disponível. Fale com o suporte."
+        : acesso.motivo === "sem_franquia"
+          ? "Seu acesso gratuito já foi usado por este e-mail ou CPF/CNPJ. Escolha um plano para continuar."
+          : "Seu período de acesso terminou. Escolha um plano para continuar.";
+    return c.json({ erro }, 403);
+  }
 
   const corpo = objeto(await c.req.json().catch(() => null));
   let dados: DadosNfe | string;

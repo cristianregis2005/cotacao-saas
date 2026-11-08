@@ -69,9 +69,8 @@ const TERMOS_CORPO = `
   <li>O Clique Frete não emite nota fiscal nem substitui a sua obrigação fiscal.</li>
 </ul>
 
-<h2>6. Planos e limites</h2>
-<p>Cada plano tem um limite mensal de cotações. Os planos, seus preços e as condições de cobrança serão informados antes de qualquer cobrança. Enquanto isso, o uso do serviço segue as condições vigentes na sua conta.</p>
-<p>Cada e-mail e cada CPF/CNPJ tem direito a uma única franquia gratuita de cotações, mesmo depois de a conta ser excluída.</p>
+<h2>6. Planos e acesso</h2>
+<p>O acesso gratuito dura 7 dias, com cotações ilimitadas durante o período. Para contas já existentes, o prazo começa na data da mudança. Cada e-mail e cada CPF/CNPJ tem direito a essa franquia uma única vez, inclusive depois da exclusão da conta. Planos pagos dão 30 dias de acesso, também sem limite de cotações. Os preços e as condições de cobrança serão informados antes de qualquer cobrança. Depois do período de acesso, é preciso escolher um plano para continuar cotando.</p>
 <p>Você pode excluir sua conta a qualquer momento, em Minha conta.</p>
 
 <h2>7. Uso adequado</h2>
@@ -109,7 +108,7 @@ const PRIVACIDADE_CORPO = `
 <h2>3. Para que usamos</h2>
 <ul>
   <li>Permitir o login, fazer cotações e criar pedidos no carrinho das transportadoras, a seu pedido.</li>
-  <li>Controlar o limite mensal de cotações do seu plano.</li>
+  <li>Controlar o prazo de acesso de cada conta (7 dias gratuitos ou 30 dias de plano pago).</li>
   <li>Preencher o endereço a partir do CEP, consultando o serviço ViaCEP.</li>
   <li>Garantir segurança, prevenir fraudes e manter registros de auditoria.</li>
   <li>Cumprir obrigações legais e responder a pedidos de autoridades competentes.</li>

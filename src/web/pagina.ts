@@ -195,10 +195,23 @@ export const PAGINA_HTML = `<!doctype html>
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
+  // A data é gravada em UTC; aqui ela é mostrada no horário de Brasília.
+  function formatarAcesso(acessoAte) {
+    var d = new Date(acessoAte.replace(" ", "T") + "Z");
+    var partes = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+    var p = function (t) { var x = partes.find(function (y) { return y.type === t; }); return x ? x.value : ""; };
+    return p("day") + "/" + p("month") + "/" + p("year") + " às " + p("hour") + ":" + p("minute");
+  }
+
   function mostrarUso(uso) {
     if (!uso) return;
-    var limite = uso.limite === null ? "ilimitado" : uso.limite;
-    texto($("uso"), "Cotações usadas neste mês: " + uso.usadas + " de " + limite);
+    if (uso.ativo && uso.acesso_ate) {
+      texto($("uso"), "Acesso ativo até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)");
+    } else if (uso.motivo === "sem_franquia") {
+      texto($("uso"), "Seu acesso gratuito já foi usado. Escolha um plano para continuar.");
+    } else {
+      texto($("uso"), "Seu período de acesso terminou. Escolha um plano para continuar.");
+    }
   }
 
   function entrarNaTela(usuario, uso) {

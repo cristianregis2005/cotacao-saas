@@ -4,7 +4,7 @@ import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import type { EntradaFrete } from "../carriers/tipos";
 import { lerCredenciais } from "../contas/tokens";
-import { registrarCotacao, verificarLimite } from "../planos";
+import { registrarCotacao, verificarAcesso } from "../planos";
 import { cotarTodas, type ExtrasCotacao } from "./todas";
 import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { chaveTransportadora } from "../transportadoras/chaves";
@@ -95,16 +95,19 @@ cotacaoRotas.post("/todas", async (c) => {
     return c.json({ erro: "Cadastre pelo menos um token em Minha conta para cotar." }, 400);
   }
 
-  const situacao = await verificarLimite(c.env.DB, usuario.id, usuario.plano_id);
-  if (usuario.plano_id === "sem_franquia") {
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
+  if (acesso.motivo === "plano_inexistente") {
+    return c.json({ erro: "Seu plano não está disponível. Fale com o suporte." }, 403);
+  }
+  if (acesso.motivo === "sem_franquia") {
     return c.json(
       { erro: "Seu acesso gratuito já foi usado por este e-mail ou CPF/CNPJ. Escolha um plano para continuar cotando." },
       403,
     );
   }
-  if (!situacao.permitido) {
+  if (!acesso.permitido) {
     return c.json(
-      { erro: `Você já usou ${situacao.usadas} de ${situacao.limite} cotações deste mês. Troque de plano para cotar mais.` },
+      { erro: "Seu período de acesso terminou. Escolha um plano para continuar cotando." },
       403,
     );
   }
@@ -174,5 +177,5 @@ cotacaoRotas.post("/todas", async (c) => {
     console.log("[historico] falha ao registrar cotação: " + String(exc));
   }
 
-  return c.json({ ...resultado, uso: { usadas: situacao.usadas + 1, limite: situacao.limite } });
+  return c.json({ ...resultado, uso: { ativo: true, motivo: "ativo", acesso_ate: acesso.acesso_ate } });
 });

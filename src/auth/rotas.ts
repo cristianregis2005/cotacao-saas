@@ -3,7 +3,7 @@ import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../env";
 import { gerarCodigo, gerarToken, hashCodigo, hashToken, iguais } from "./codigos";
-import { verificarLimite } from "../planos";
+import { verificarAcesso } from "../planos";
 import { garantirFranquiaUnica } from "./identidade";
 
 const COOKIE = "sessao";
@@ -110,7 +110,7 @@ authRotas.post("/verificar", async (c) => {
   }
 
   await c.env.DB.prepare("UPDATE codigos_login SET usado = 1 WHERE id = ?").bind(registro.id).run();
-  await c.env.DB.prepare("INSERT OR IGNORE INTO usuarios (id, email) VALUES (?, ?)")
+  await c.env.DB.prepare("INSERT OR IGNORE INTO usuarios (id, email, acesso_ate) VALUES (?, ?, datetime('now', '+7 days'))")
     .bind(crypto.randomUUID(), email)
     .run();
   const usuario = await c.env.DB.prepare("SELECT id, email, nome, is_admin FROM usuarios WHERE email = ?")
@@ -140,12 +140,12 @@ authRotas.post("/verificar", async (c) => {
 authRotas.get("/eu", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Não logado." }, 401);
-  const situacao = await verificarLimite(c.env.DB, usuario.id, usuario.plano_id);
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
   return c.json({
     email: usuario.email,
     nome: usuario.nome,
     admin: !!usuario.is_admin,
-    uso: { usadas: situacao.usadas, limite: situacao.limite },
+    uso: { ativo: acesso.permitido, motivo: acesso.motivo, acesso_ate: acesso.acesso_ate },
   });
 });
 
