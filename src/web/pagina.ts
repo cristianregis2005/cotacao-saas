@@ -61,6 +61,12 @@ export const PAGINA_HTML = `<!doctype html>
   [hidden] { display: none !important; }
   .etapa-oculta { display: none !important; }
   .etapas { display: flex; gap: 8px; margin: 0 0 16px; }
+  .aviso-topo { position: sticky; top: 0; z-index: 10; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .aviso-topo[hidden] { display: none; }
+  .aviso-topo.ok { border-color: var(--ok); color: var(--ok); }
+  .aviso-topo.erro { border-color: var(--erro); color: var(--erro); }
+  .aviso-topo.info { color: var(--suave); }
+  [data-aviso] { display: none; }
   .etapas button { flex: 1; padding: 10px 8px; font-size: 0.9rem; background: var(--cartao); color: var(--suave); border: 1px solid var(--borda); }
   .etapas button.ativa { background: var(--destaque); color: #fff; border-color: var(--destaque); }
   .etapas button[disabled] { opacity: 0.5; cursor: default; }
@@ -122,6 +128,7 @@ export const PAGINA_HTML = `<!doctype html>
       <button type="button" data-passo="2">2. Dados do envio</button>
       <button type="button" data-passo="3" disabled>3. Opções de frete</button>
     </nav>
+    <div class="aviso-topo" id="aviso-topo" role="status" aria-live="polite" hidden></div>
 
     <section class="cartao" id="secao-carrinho" data-etapa="1">
       <div class="cabecalho-recolhivel">
@@ -139,7 +146,7 @@ export const PAGINA_HTML = `<!doctype html>
         </label>
         <div id="nfe-resumo"></div>
         <div class="grade" id="campos-nfe" hidden></div>
-        <p class="msg" id="msg-carrinho"></p>
+        <p class="msg" id="msg-carrinho" data-aviso></p>
       </div>
     </section>
 
@@ -188,7 +195,7 @@ export const PAGINA_HTML = `<!doctype html>
         <label>Altura (cm) <input id="altura" inputmode="decimal" required></label>
       </div>
       <button type="submit" id="btn-cotar">Cotar</button>
-      <p class="msg erro" id="msg-cotar"></p>
+      <p class="msg erro" id="msg-cotar" data-aviso></p>
       </div>
     </form>
     <div class="navegacao" data-etapa="2">
@@ -207,7 +214,7 @@ export const PAGINA_HTML = `<!doctype html>
     </section>
 
     <section class="cartao" id="retorno" data-etapa="3" hidden>
-      <p class="msg" id="msg-pedido"></p>
+      <p class="msg" id="msg-pedido" data-aviso></p>
       <button type="button" class="secundario" id="btn-liberar" hidden>Liberar esta nota para novo envio</button>
     </section>
     <div class="navegacao" data-etapa="3">
@@ -237,7 +244,28 @@ export const PAGINA_HTML = `<!doctype html>
     $("cotar").hidden = secao !== "cotar";
   }
 
-  function texto(el, valor) { el.textContent = valor; }
+  // Mensagens de cotação, nota e pedido aparecem só no aviso do topo (verde ou vermelho). Valor vazio limpa o aviso.
+  var avisoOrigem = null; // qual mensagem está no topo; só ela pode apagar o aviso
+  function texto(el, valor) {
+    el.textContent = valor;
+    if (el.hasAttribute("data-aviso")) {
+      if (!valor) {
+        if (avisoOrigem === el) { $("aviso-topo").hidden = true; avisoOrigem = null; }
+        return;
+      }
+      avisoOrigem = el;
+      avisar(valor, el.classList.contains("erro") ? "erro" : (el.classList.contains("ok") ? "ok" : "info"));
+    }
+  }
+
+  // Aviso fixo no topo: resposta do envio, da etiqueta ou do cancelamento aparece sem precisar rolar a tela.
+  function avisar(valor, tipo) {
+    var a = $("aviso-topo");
+    a.className = "aviso-topo " + (tipo || "info");
+    texto(a, valor);
+    a.hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function reais(valor) {
     return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -447,6 +475,7 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-cotar").className = "msg erro";
         texto($("msg-cotar"), r.dados.erro || "Não consegui cotar. Tente de novo.");
+        avisar($("msg-cotar").textContent, "erro");
         return;
       }
       texto($("msg-pedido"), "");
@@ -460,6 +489,7 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       $("msg-cotar").className = "msg erro";
       texto($("msg-cotar"), "Sem conexão. Tente de novo.");
+      avisar($("msg-cotar").textContent, "erro");
     });
   });
 
@@ -538,6 +568,7 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-carrinho").className = "msg erro";
         texto($("msg-carrinho"), r.dados.erro || "Não consegui ler esta nota.");
+        avisar($("msg-carrinho").textContent, "erro");
         return;
       }
       dadosNfe = r.dados.dados;
@@ -562,6 +593,7 @@ export const PAGINA_HTML = `<!doctype html>
     }).catch(function () {
       $("msg-carrinho").className = "msg erro";
       texto($("msg-carrinho"), "Não consegui ler o arquivo. Tente de novo.");
+      avisar($("msg-carrinho").textContent, "erro");
     });
   }
 
@@ -589,6 +621,7 @@ export const PAGINA_HTML = `<!doctype html>
         $("btn-liberar").hidden = true;
         $("msg-pedido").className = "msg erro";
         texto($("msg-pedido"), dados);
+        avisar(dados, "erro");
         return;
       }
     }
@@ -604,6 +637,7 @@ export const PAGINA_HTML = `<!doctype html>
     pendenteLiberar = null;
     $("msg-pedido").className = "msg";
     texto($("msg-pedido"), "Criando o pedido...");
+    avisar("Criando o pedido...", "info");
     var corpo = {
       dados: dados,
       volume: ultimaEntrada,
@@ -618,6 +652,7 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-pedido").className = "msg erro";
         texto($("msg-pedido"), r.dados.erro || "Não consegui criar o pedido.");
+        avisar($("msg-pedido").textContent, "erro");
         if (r.status === 409 && dadosNfe) {
           pendenteLiberar = { origem: c.origem, chave: dadosNfe.chave };
           $("btn-liberar").hidden = false;
@@ -630,6 +665,7 @@ export const PAGINA_HTML = `<!doctype html>
         $("msg-pedido").className = "msg ok";
         texto($("msg-pedido"), "Pedido criado no carrinho da " + r.dados.transportadora + " (código " + r.dados.codigo +
           "). Pague no painel da transportadora.");
+        avisar($("msg-pedido").textContent, "ok");
       }
       zerarDados();
       limparDce();
@@ -639,6 +675,7 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       $("msg-pedido").className = "msg erro";
       texto($("msg-pedido"), "Sem conexão. Confira no painel da transportadora antes de tentar de novo.");
+      avisar($("msg-pedido").textContent, "erro");
     });
   }
 
@@ -647,6 +684,7 @@ export const PAGINA_HTML = `<!doctype html>
   function mostrarEtiquetaEnvia(d) {
     $("msg-pedido").className = "msg ok";
     texto($("msg-pedido"), "Etiqueta comprada na Envia. Rastreio " + d.codigo + ". Debitado do seu saldo: " + reais(d.preco) + ".");
+    avisar($("msg-pedido").textContent, "ok");
     var area = document.getElementById("acoes-envia");
     if (!area) {
       area = document.createElement("div");
@@ -681,6 +719,7 @@ export const PAGINA_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-pedido").className = "msg erro";
         texto($("msg-pedido"), r.dados.erro || "Não consegui cancelar a etiqueta.");
+        avisar($("msg-pedido").textContent, "erro");
         return;
       }
       $("msg-pedido").className = "msg ok";
@@ -688,10 +727,12 @@ export const PAGINA_HTML = `<!doctype html>
         ? "Etiqueta cancelada. O valor voltou para o seu saldo na Envia."
         : "Etiqueta cancelada. A Envia ainda não confirmou a devolução do saldo; confira no painel dela.");
       $("acoes-envia").textContent = "";
+      avisar($("msg-pedido").textContent, "ok");
     }).catch(function () {
       botao.disabled = false;
       $("msg-pedido").className = "msg erro";
       texto($("msg-pedido"), "Sem conexão. Confira no painel da Envia antes de tentar de novo.");
+      avisar($("msg-pedido").textContent, "erro");
     });
   }
 
@@ -701,6 +742,7 @@ export const PAGINA_HTML = `<!doctype html>
   // Mostra só a etapa pedida. Usa classe própria para não brigar com o atributo hidden dos cartões.
   function irEtapa(n) {
     etapaAtual = n;
+    if (n < 3) $("aviso-topo").hidden = true;
     var itens = document.querySelectorAll("[data-etapa]");
     for (var i = 0; i < itens.length; i++) {
       itens[i].classList.toggle("etapa-oculta", Number(itens[i].getAttribute("data-etapa")) !== n);

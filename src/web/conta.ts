@@ -12,39 +12,47 @@ export const CONTA_HTML = `<!doctype html>
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--fundo); color: var(--texto); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.4; }
-  main { max-width: 640px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 1.4rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.5rem; margin: 8px 0 16px; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
   a { color: var(--destaque); }
   .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
   .linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .status { font-size: 0.9rem; color: var(--suave); }
+  .suave { color: var(--suave); font-size: 0.9rem; }
+  .status { font-size: 0.85rem; color: var(--suave); }
   .status.ok { color: var(--ok); }
-  label { display: block; font-size: 0.9rem; color: var(--suave); margin: 10px 0; }
+  label { display: block; font-size: 0.9rem; color: var(--suave); margin-bottom: 10px; }
   input { display: block; width: 100%; margin-top: 4px; padding: 10px; font-size: 1rem; border: 1px solid var(--borda); border-radius: 8px; background: var(--fundo); color: var(--texto); }
-  button { padding: 10px 14px; font: inherit; font-weight: 600; border: 0; border-radius: 8px; background: var(--destaque); color: #fff; cursor: pointer; margin-top: 6px; }
-  button.secundario { background: transparent; color: var(--erro); border: 1px solid var(--borda); }
-  button[disabled] { opacity: 0.6; }
-  .msg { min-height: 1em; font-size: 0.8rem; color: var(--suave); margin: 10px 0 0; }
-  .msg.erro { color: var(--erro); }
-  .msg.ok { color: var(--ok); }
+  input[readonly] { color: var(--suave); letter-spacing: 2px; cursor: default; }
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .grade { grid-template-columns: 1fr; } }
+  button, .botao { display: inline-block; padding: 11px 16px; font: inherit; font-size: 1rem; font-weight: 600; border: 0; border-radius: 8px; background: var(--destaque); color: #fff; cursor: pointer; text-decoration: none; }
+  button[disabled] { opacity: 0.6; cursor: wait; }
+  button.secundario, .botao.secundario { background: transparent; color: var(--destaque); border: 1px solid var(--borda); }
+  button.perigo { background: transparent; color: var(--erro); border: 1px solid var(--borda); }
+  .msg { min-height: 1em; margin: 10px 0 0; font-size: 0.8rem; color: var(--suave); }
+  .msg.erro { color: var(--erro); }
+  .msg.ok { color: var(--ok); }
   .token-linha { display: flex; gap: 8px; align-items: flex-end; }
-  .token-linha label { flex: 1; min-width: 0; margin: 10px 0 0; }
-  input[readonly] { color: var(--suave); letter-spacing: 2px; cursor: default; }
-  .icone { width: 44px; height: 44px; flex: 0 0 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 0; background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  .token-linha label { flex: 1; min-width: 0; margin-bottom: 0; }
+  .icone { width: 40px; height: 40px; flex: 0 0 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0; margin: 0; background: transparent; color: var(--texto); border: 1px solid var(--borda); }
   .icone:hover { border-color: var(--destaque); }
   .icone.perigo { color: var(--erro); }
   .icone svg { width: 20px; height: 20px; }
+  .bloco-token { border: 1px solid var(--borda); border-radius: 10px; padding: 12px; margin-top: 10px; background: var(--fundo); }
+  .bloco-token input[type="radio"] { display: inline-block; width: auto; margin: 0 6px 0 0; }
+  .bloco-token .msg:empty { margin: 0; min-height: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
-  <p><a href="/">← Voltar para as cotações</a></p>
   <h1>Minha conta</h1>
+  <section class="cartao linha">
+    <span class="suave">Tokens, dados e agências de coleta.</span>
+    <a class="botao secundario" href="/">Voltar para as cotações</a>
+  </section>
   <p class="msg erro" id="msg-acesso" hidden></p>
-  <p class="status" id="quem"></p>
   <div id="dados"></div>
   <div id="cartoes"></div>
   <div id="agencias"></div>
@@ -431,7 +439,7 @@ export const CONTA_HTML = `<!doctype html>
     descricao.textContent = "Seus dados pessoais, tokens, cotações e pedidos serão apagados e não será possível desfazer. Seu e-mail e CPF/CNPJ continuam registrados para evitar novas franquias gratuitas.";
     var botao = document.createElement("button");
     botao.type = "button";
-    botao.className = "secundario";
+    botao.className = "perigo";
     botao.textContent = "Excluir minha conta";
     var msg = document.createElement("p");
     msg.className = "msg";
