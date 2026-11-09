@@ -12,7 +12,21 @@ export const ADMIN_HTML = `<!doctype html>
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--fundo); color: var(--texto); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .casca { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+  .menu-lateral { background: var(--cartao); border-right: 1px solid var(--borda); padding: 16px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .menu-lateral a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--texto); text-decoration: none; margin-bottom: 4px; }
+  .menu-lateral a:hover { background: var(--fundo); }
+  .menu-lateral a.ativo { background: var(--destaque); color: #fff; }
+  .menu-lateral .submenu { margin: 0 0 4px 14px; }
+  .menu-lateral .submenu a { font-size: 0.9rem; }
+  main { max-width: 1200px; width: 100%; padding: 16px 24px; }
+  @media (max-width: 760px) {
+    .casca { grid-template-columns: 1fr; }
+    .menu-lateral { position: sticky; top: 0; z-index: 5; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--borda); padding: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .menu-lateral a { margin: 0; white-space: nowrap; }
+    .menu-lateral .submenu { display: flex; gap: 4px; margin: 0 0 0 4px; }
+    main { padding: 16px; }
+  }
   h1 { font-size: 1.4rem; }
   h2 { font-size: 1.1rem; margin: 0 0 12px; }
   .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
@@ -48,12 +62,24 @@ export const ADMIN_HTML = `<!doctype html>
 </style>
 </head>
 <body>
+<div class="casca">
+<nav class="menu-lateral" aria-label="Menu do administrador">
+  <a href="#usuarios" data-menu="usuarios">Usuários</a>
+  <a href="#planos" data-menu="planos">Planos</a>
+  <a href="#transportadoras" data-menu="transportadoras">Transportadoras</a>
+  <a href="#historico" data-menu="registros">Registros</a>
+  <div class="submenu" id="submenu-registros" hidden>
+    <a href="#historico" data-menu="historico">Histórico</a>
+    <a href="#auditoria" data-menu="auditoria">Auditoria</a>
+  </div>
+</nav>
 <main>
   <h1>Administração</h1>
   <p class="msg erro" id="msg-acesso" hidden></p>
 
   <section id="secao" hidden>
-    <div class="cartao">
+    <div data-painel="usuarios">
+    <div class="cartao" id="lista-usuarios">
       <h2>Usuários</h2>
       <table>
         <thead><tr><th>E-mail</th><th>Nome</th><th>Plano</th><th>Criado em</th><th></th></tr></thead>
@@ -61,7 +87,9 @@ export const ADMIN_HTML = `<!doctype html>
       </table>
       <p class="msg" id="msg"></p>
     </div>
+    </div>
 
+    <div data-painel="historico">
     <div class="cartao" id="secao-historico">
       <h2>Histórico de cotações</h2>
       <form class="grade" id="form-historico">
@@ -85,7 +113,9 @@ export const ADMIN_HTML = `<!doctype html>
         <tbody id="linhas-historico"></tbody>
       </table>
     </div>
+    </div>
 
+    <div data-painel="transportadoras">
     <div class="cartao" id="secao-transportadoras">
       <h2>Transportadoras</h2>
       <p class="suave">Desligue uma plataforma inteira ou uma transportadora dentro dela, para todos os clientes. A lista de transportadoras aparece conforme elas são cotadas. Desligada, ela não é cotada e não aceita pedido.</p>
@@ -95,7 +125,9 @@ export const ADMIN_HTML = `<!doctype html>
       </table>
       <p class="msg" id="msg-transportadoras"></p>
     </div>
+    </div>
 
+    <div data-painel="auditoria">
     <div class="cartao" id="secao-auditoria">
       <h2>Auditoria</h2>
       <p class="suave">Ações feitas pelos administradores no painel.</p>
@@ -132,6 +164,7 @@ export const ADMIN_HTML = `<!doctype html>
         <thead><tr><th>Data (UTC)</th><th>Administrador</th><th>Cliente</th><th>Ação</th><th>Detalhe</th></tr></thead>
         <tbody id="linhas-auditoria"></tbody>
       </table>
+    </div>
     </div>
 
     <section class="cartao" id="painel-dados" hidden>
@@ -189,6 +222,7 @@ export const ADMIN_HTML = `<!doctype html>
       <div id="cartoes-tokens"></div>
     </section>
 
+    <div data-painel="planos">
     <div class="cartao">
       <h2>Planos</h2>
       <table>
@@ -215,8 +249,10 @@ export const ADMIN_HTML = `<!doctype html>
       <button type="button" class="secundario" id="btn-cancelar" hidden>Cancelar edição</button>
       <p class="msg" id="msg-plano"></p>
     </form>
+    </div>
   </section>
 </main>
+</div>
 <script>
 (function () {
   var planos = [];
@@ -404,6 +440,8 @@ export const ADMIN_HTML = `<!doctype html>
   function abrirDados(u) {
     dadosDoCliente = u.id;
     $("titulo-dados").textContent = "Dados de " + u.email;
+    $("lista-usuarios").hidden = true;
+    $("painel-tokens").hidden = true;
     $("painel-dados").hidden = false;
     $("painel-dados").scrollIntoView({ behavior: "smooth" });
     mostrarMsgDados("Carregando...");
@@ -419,6 +457,7 @@ export const ADMIN_HTML = `<!doctype html>
   $("btn-fechar-dados").addEventListener("click", function () {
     dadosDoCliente = null;
     $("painel-dados").hidden = true;
+    $("lista-usuarios").hidden = false;
   });
 
   $("form-dados").addEventListener("submit", function (e) {
@@ -441,6 +480,8 @@ export const ADMIN_HTML = `<!doctype html>
   function abrirTokens(u) {
     clienteAtual = u;
     $("titulo-tokens").textContent = "Tokens de " + u.email;
+    $("lista-usuarios").hidden = true;
+    $("painel-dados").hidden = true;
     $("painel-tokens").hidden = false;
     $("painel-tokens").scrollIntoView({ behavior: "smooth" });
     carregarTokens();
@@ -449,6 +490,7 @@ export const ADMIN_HTML = `<!doctype html>
   $("btn-fechar-tokens").addEventListener("click", function () {
     clienteAtual = null;
     $("painel-tokens").hidden = true;
+    $("lista-usuarios").hidden = false;
     $("cartoes-tokens").textContent = "";
   });
 
@@ -762,6 +804,27 @@ export const ADMIN_HTML = `<!doctype html>
     $("msg-transportadoras").textContent = texto;
   }
 
+  var SECOES = ["usuarios", "planos", "transportadoras", "historico", "auditoria"];
+
+  function mostrarSecao(nome) {
+    if (SECOES.indexOf(nome) < 0) nome = "usuarios";
+    clienteAtual = null;
+    dadosDoCliente = null;
+    $("painel-dados").hidden = true;
+    $("painel-tokens").hidden = true;
+    $("lista-usuarios").hidden = false;
+    document.querySelectorAll("[data-painel]").forEach(function (el) {
+      el.hidden = el.getAttribute("data-painel") !== nome;
+    });
+    document.querySelectorAll("[data-menu]").forEach(function (a) {
+      var m = a.getAttribute("data-menu");
+      a.classList.toggle("ativo", m === nome || (m === "registros" && (nome === "historico" || nome === "auditoria")));
+    });
+    $("submenu-registros").hidden = !(nome === "historico" || nome === "auditoria");
+  }
+
+  window.addEventListener("hashchange", function () { mostrarSecao(location.hash.slice(1)); });
+
   function carregar() {
     return Promise.all([api("/api/admin/usuarios"), api("/api/admin/planos")]).then(function (res) {
       if (!res[0].ok || !res[1].ok) { acessoNegado("Não consegui carregar os dados."); return; }
@@ -778,7 +841,7 @@ export const ADMIN_HTML = `<!doctype html>
   api("/api/auth/eu").then(function (r) {
     if (!r.ok) { acessoNegado("Entre primeiro na página inicial com seu e-mail."); return; }
     if (!r.dados.admin) { acessoNegado("Esta área é restrita ao administrador."); return; }
-    return carregar();
+    return carregar().then(function () { mostrarSecao(location.hash.slice(1)); });
   }).catch(function () { acessoNegado("Sem conexão. Tente de novo."); });
 })();
 </script>
