@@ -360,7 +360,7 @@ carrinhoRotas.post("/ler-nfe", async (c) => {
 carrinhoRotas.post("/enviar", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
-  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id, !!usuario.is_admin);
   if (!acesso.permitido) {
     const erro =
       acesso.motivo === "plano_inexistente"

@@ -95,7 +95,7 @@ cotacaoRotas.post("/todas", async (c) => {
     return c.json({ erro: "Cadastre pelo menos um token em Minha conta para cotar." }, 400);
   }
 
-  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id, !!usuario.is_admin);
   if (acesso.motivo === "plano_inexistente") {
     return c.json({ erro: "Seu plano não está disponível. Fale com o suporte." }, 403);
   }

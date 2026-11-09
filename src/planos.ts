@@ -11,7 +11,7 @@ export function diasDoPlano(planoId: string): number | null {
   return planoId === PLANO_PADRAO ? DIAS_GRATUITO : DIAS_PAGO;
 }
 
-export type MotivoAcesso = "ativo" | "expirado" | "sem_franquia" | "plano_inexistente";
+export type MotivoAcesso = "ativo" | "expirado" | "sem_franquia" | "plano_inexistente" | "administrador";
 
 export interface SituacaoAcesso {
   permitido: boolean;
@@ -23,7 +23,11 @@ export async function verificarAcesso(
   db: D1Database,
   usuarioId: string,
   planoId: string | null,
+  administrador = false,
 ): Promise<SituacaoAcesso> {
+  // Administrador: acesso sem prazo nem plano, sem checar pagamento.
+  if (administrador) return { permitido: true, motivo: "administrador", acesso_ate: null };
+
   const id = planoId ?? PLANO_PADRAO;
   if (id === PLANO_SEM_FRANQUIA) return { permitido: false, motivo: "sem_franquia", acesso_ate: null };
 

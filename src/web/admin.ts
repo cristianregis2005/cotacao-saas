@@ -58,6 +58,14 @@ export const ADMIN_HTML = `<!doctype html>
   .icone:hover { border-color: var(--destaque); }
   .icone.perigo { color: var(--erro); }
   .icone svg { width: 20px; height: 20px; }
+  .interruptor { position: relative; display: inline-block; width: 46px; height: 26px; margin: 0; }
+  .interruptor input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; display: block; }
+  .interruptor .trilho { position: absolute; inset: 0; background: var(--borda); border-radius: 26px; cursor: pointer; transition: background 0.2s; }
+  .interruptor .trilho::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .interruptor input:checked + .trilho { background: var(--ok); }
+  .interruptor input:checked + .trilho::before { transform: translateX(20px); }
+  .interruptor input:focus-visible + .trilho { outline: 2px solid var(--destaque); outline-offset: 2px; }
+  .interruptor input:disabled + .trilho { opacity: 0.6; cursor: default; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -779,20 +787,33 @@ export const ADMIN_HTML = `<!doctype html>
         tr.appendChild(nomeCelula);
         tr.appendChild(celula(t.ativa ? "Ligada" : "Desligada"));
         var tdAcao = document.createElement("td");
-        var botao = document.createElement("button");
-        botao.type = "button";
-        botao.className = t.ativa ? "secundario" : "";
-        botao.textContent = t.ativa ? "Desligar" : "Ligar";
-        botao.addEventListener("click", function () {
-          botao.disabled = true;
-          api("/api/admin/transportadoras/" + encodeURIComponent(t.chave), { ativa: !t.ativa }, "PUT").then(function (res) {
-            botao.disabled = false;
-            if (!res.ok) { mostrarMsgTransportadoras(res.dados.erro || "Não consegui alterar.", "erro"); return; }
-            mostrarMsgTransportadoras(t.nome + (t.ativa ? " desligada." : " ligada."), "ok");
+        var rotulo = document.createElement("label");
+        rotulo.className = "interruptor";
+        var interruptor = document.createElement("input");
+        interruptor.type = "checkbox";
+        interruptor.setAttribute("role", "switch");
+        interruptor.setAttribute("aria-label", "Ligar ou desligar " + t.nome);
+        interruptor.checked = !!t.ativa;
+        var trilho = document.createElement("span");
+        trilho.className = "trilho";
+        trilho.setAttribute("aria-hidden", "true");
+        rotulo.appendChild(interruptor);
+        rotulo.appendChild(trilho);
+        interruptor.addEventListener("change", function () {
+          var novo = interruptor.checked;
+          interruptor.disabled = true;
+          api("/api/admin/transportadoras/" + encodeURIComponent(t.chave), { ativa: novo }, "PUT").then(function (res) {
+            interruptor.disabled = false;
+            if (!res.ok) {
+              interruptor.checked = !novo;
+              mostrarMsgTransportadoras(res.dados.erro || "Não consegui alterar.", "erro");
+              return;
+            }
+            mostrarMsgTransportadoras(t.nome + (novo ? " ligada." : " desligada."), "ok");
             carregarTransportadoras();
           });
         });
-        tdAcao.appendChild(botao);
+        tdAcao.appendChild(rotulo);
         tr.appendChild(tdAcao);
         corpo.appendChild(tr);
       });

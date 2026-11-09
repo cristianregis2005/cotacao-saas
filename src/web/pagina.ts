@@ -207,6 +207,8 @@ export const PAGINA_HTML = `<!doctype html>
     if (!uso) return;
     if (uso.ativo && uso.acesso_ate) {
       texto($("uso"), "Acesso ativo até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)");
+    } else if (uso.motivo === "administrador") {
+      texto($("uso"), "Conta de administrador: acesso sem prazo.");
     } else if (uso.motivo === "sem_franquia") {
       texto($("uso"), "Seu acesso gratuito já foi usado. Escolha um plano para continuar.");
     } else {
@@ -244,7 +246,6 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       if (!r.ok) { texto($("msg-entrar"), r.dados.erro || "Não consegui enviar o código."); return; }
       $("form-codigo").hidden = false;
-      $("codigo").value = "";
       $("codigo").focus();
     }).catch(function () {
       botao.disabled = false;
