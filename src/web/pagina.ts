@@ -59,6 +59,34 @@ export const PAGINA_HTML = `<!doctype html>
   .alternar svg { width: 16px; height: 16px; transition: transform 0.2s; }
   .alternar.fechado svg { transform: rotate(-90deg); }
   [hidden] { display: none !important; }
+  .etapa-oculta { display: none !important; }
+  .etapas { display: flex; gap: 8px; margin: 0 0 16px; }
+  .etapas button { flex: 1; padding: 10px 8px; font-size: 0.9rem; background: var(--cartao); color: var(--suave); border: 1px solid var(--borda); }
+  .etapas button.ativa { background: var(--destaque); color: #fff; border-color: var(--destaque); }
+  .etapas button[disabled] { opacity: 0.5; cursor: default; }
+  .navegacao { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+  .soltar { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px; margin: 0 0 12px; border: 2px dashed var(--borda); border-radius: 10px; text-align: center; cursor: pointer; color: var(--suave); position: relative; }
+  .soltar strong { color: var(--texto); font-size: 1rem; }
+  .soltar.sobre { border-color: var(--destaque); color: var(--destaque); background: var(--fundo); }
+  .soltar svg { width: 28px; height: 28px; color: var(--destaque); }
+  input.oculto-visual { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; padding: 0; border: 0; }
+  .resumo-nota { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 0; }
+  .resumo-nota div { background: var(--fundo); border: 1px solid var(--borda); border-radius: 8px; padding: 10px; min-width: 0; }
+  .resumo-nota small { display: block; color: var(--suave); font-size: 0.8rem; }
+  .resumo-nota span { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .ordenacao { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; margin: 0 0 12px; }
+  .ordenacao button { background: transparent; color: var(--suave); border-radius: 0; padding: 8px 12px; font-size: 0.9rem; font-weight: 600; }
+  .ordenacao button.ativa { background: var(--destaque); color: #fff; }
+  .opcoes { display: grid; gap: 12px; }
+  .opcao { position: relative; border: 1px solid var(--borda); border-radius: 10px; padding: 14px; background: var(--cartao); }
+  .opcao.melhor { border-color: var(--ok); }
+  .opcao .etiqueta { position: absolute; top: -10px; left: 12px; background: var(--ok); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .opcao-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .opcao-nome { font-weight: 700; overflow-wrap: anywhere; }
+  .opcao-servico { color: var(--suave); font-size: 0.9rem; overflow-wrap: anywhere; }
+  .opcao-preco { font-size: 1.25rem; font-weight: 700; text-align: right; white-space: nowrap; }
+  .opcao-prazo { color: var(--suave); font-size: 0.9rem; text-align: right; white-space: nowrap; }
+  .opcao > button { width: 100%; }
 </style>
 </head>
 <body>
@@ -89,7 +117,13 @@ export const PAGINA_HTML = `<!doctype html>
       <span><a href="/conta">Minha conta</a> &nbsp; <button class="secundario" id="btn-sair" type="button">Sair</button></span>
     </div>
 
-    <section class="cartao" id="secao-carrinho">
+    <nav class="etapas" id="etapas" aria-label="Etapas da cotação">
+      <button type="button" data-passo="1" class="ativa">1. Nota fiscal</button>
+      <button type="button" data-passo="2">2. Dados do envio</button>
+      <button type="button" data-passo="3" disabled>3. Opções de frete</button>
+    </nav>
+
+    <section class="cartao" id="secao-carrinho" data-etapa="1">
       <div class="cabecalho-recolhivel">
         <h2>Enviar o XML da nota</h2>
         <span class="suave" id="resumo-nfe"></span>
@@ -97,14 +131,19 @@ export const PAGINA_HTML = `<!doctype html>
       </div>
       <div id="corpo-nfe">
         <p class="suave">Envie a nota fiscal ou preencha os dados do pacote.</p>
-        <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml">
-        <p class="suave" id="nfe-resumo"></p>
+        <label class="soltar" id="zona-nfe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+          <strong>Arraste o XML da nota aqui</strong>
+          <span>ou toque para escolher o arquivo</span>
+          <input type="file" id="arquivoNfe" accept=".xml,text/xml,application/xml" class="oculto-visual">
+        </label>
+        <div id="nfe-resumo"></div>
         <div class="grade" id="campos-nfe" hidden></div>
         <p class="msg" id="msg-carrinho"></p>
       </div>
     </section>
 
-    <section class="cartao" id="secao-dce">
+    <section class="cartao" id="secao-dce" data-etapa="1">
       <h2>Sem nota fiscal (DC-e)</h2>
       <p class="suave">Só para pessoa física (CPF no cadastro). Preencha o destinatário e os produtos com os valores reais. A declaração segue junto com o pedido.</p>
       <div class="grade">
@@ -128,7 +167,11 @@ export const PAGINA_HTML = `<!doctype html>
       <p class="suave" id="dce-total"></p>
     </section>
 
-    <form id="form-cotacao" class="cartao">
+    <div class="navegacao" data-etapa="1">
+      <button type="button" id="btn-ir-2">Continuar: dados do envio</button>
+    </div>
+
+    <form id="form-cotacao" class="cartao" data-etapa="2">
       <div class="cabecalho-recolhivel">
         <h2>Dados do envio</h2>
         <span class="suave" id="resumo-dados"></span>
@@ -148,23 +191,28 @@ export const PAGINA_HTML = `<!doctype html>
       <p class="msg erro" id="msg-cotar"></p>
       </div>
     </form>
+    <div class="navegacao" data-etapa="2">
+      <button type="button" class="secundario" id="btn-voltar-1">Voltar</button>
+    </div>
 
-    <section class="cartao" id="resultado" hidden>
+    <section class="cartao" id="resultado" data-etapa="3" hidden>
       <h2>Opções de frete</h2>
       <p class="suave" id="frete-nota"></p>
-      <div class="tabela-wrap">
-        <table>
-          <thead id="cabecalho"><tr><th>Origem</th><th>Transportadora</th><th>Serviço</th><th><button type="button" class="ordenar" data-campo="prazoDias" data-rotulo="Prazo">Prazo</button></th><th class="preco"><button type="button" class="ordenar" data-campo="preco" data-rotulo="Preço">Preço</button></th><th></th></tr></thead>
-          <tbody id="linhas"></tbody>
-        </table>
+      <div class="ordenacao" id="ordenacao" role="group" aria-label="Ordenar opções">
+        <button type="button" data-campo="preco" class="ativa">Menor preço</button>
+        <button type="button" data-campo="prazoDias">Menor prazo</button>
       </div>
+      <div class="opcoes" id="linhas"></div>
       <ul class="avisos" id="avisos"></ul>
     </section>
 
-    <section class="cartao" id="retorno" hidden>
+    <section class="cartao" id="retorno" data-etapa="3" hidden>
       <p class="msg" id="msg-pedido"></p>
       <button type="button" class="secundario" id="btn-liberar" hidden>Liberar esta nota para novo envio</button>
     </section>
+    <div class="navegacao" data-etapa="3">
+      <button type="button" class="secundario" id="btn-voltar-2">Voltar aos dados do envio</button>
+    </div>
 
   </section>
   <footer class="suave" style="text-align:center;margin:24px 0 8px;font-size:0.8rem;color:var(--suave)"><a href="/termos">Termos de uso</a> · <a href="/privacidade">Privacidade</a></footer>
@@ -220,6 +268,7 @@ export const PAGINA_HTML = `<!doctype html>
     texto($("quem"), usuario.email);
     mostrarUso(uso);
     mostrar("cotar");
+    irEtapa(1);
   }
 
   function iniciar() {
@@ -282,16 +331,15 @@ export const PAGINA_HTML = `<!doctype html>
   var resultadoAtual = [];
   var ordem = { campo: "preco", sentido: 1 };
 
-  function atualizarSetas() {
-    var botoes = document.querySelectorAll("button.ordenar");
+  // Botões "Menor preço" e "Menor prazo": marca o que está em uso.
+  function atualizarOrdenacao() {
+    var botoes = document.querySelectorAll("#ordenacao button");
     for (var i = 0; i < botoes.length; i++) {
-      var b = botoes[i];
-      var seta = "";
-      if (b.getAttribute("data-campo") === ordem.campo) seta = ordem.sentido === 1 ? " ▲" : " ▼";
-      b.textContent = b.getAttribute("data-rotulo") + seta;
+      botoes[i].classList.toggle("ativa", botoes[i].getAttribute("data-campo") === ordem.campo);
     }
   }
 
+  // Cada opção vira um cartão: transportadora, serviço, prazo, preço e o botão de envio.
   function desenharLinhas() {
     var corpo = $("linhas");
     corpo.textContent = "";
@@ -303,37 +351,52 @@ export const PAGINA_HTML = `<!doctype html>
       return (va - vb) * ordem.sentido;
     });
     lista.forEach(function (c, i) {
-      var tr = document.createElement("tr");
-      if (ordem.campo === "preco" && ordem.sentido === 1 && i === 0) tr.className = "melhor";
-      [c.origem, c.transportadora || "-", c.servico || "-", (c.prazoDias != null ? c.prazoDias + " dia(s)" : (c.prazoTexto || "-"))].forEach(function (t) {
-        var td = document.createElement("td");
-        td.textContent = t;
-        tr.appendChild(td);
-      });
-      var preco = document.createElement("td");
-      preco.className = "preco";
+      var destaque = i === 0 && ordem.sentido === 1;
+      var cartao = document.createElement("div");
+      cartao.className = "opcao" + (destaque ? " melhor" : "");
+      if (destaque) {
+        var etiqueta = document.createElement("span");
+        etiqueta.className = "etiqueta";
+        etiqueta.textContent = ordem.campo === "preco" ? "Menor preço" : "Menor prazo";
+        cartao.appendChild(etiqueta);
+      }
+      var topo = document.createElement("div");
+      topo.className = "opcao-topo";
+      var esquerda = document.createElement("div");
+      var nome = document.createElement("div");
+      nome.className = "opcao-nome";
+      nome.textContent = c.transportadora || "-";
+      var servico = document.createElement("div");
+      servico.className = "opcao-servico";
+      servico.textContent = c.origem + " · " + (c.servico || "-");
+      esquerda.appendChild(nome);
+      esquerda.appendChild(servico);
+      var direita = document.createElement("div");
+      var preco = document.createElement("div");
+      preco.className = "opcao-preco";
       preco.textContent = reais(c.preco);
-      tr.appendChild(preco);
-      var acao = document.createElement("td");
+      var prazo = document.createElement("div");
+      prazo.className = "opcao-prazo";
+      prazo.textContent = c.prazoDias != null ? c.prazoDias + " dia(s)" : (c.prazoTexto || "-");
+      direita.appendChild(preco);
+      direita.appendChild(prazo);
+      topo.appendChild(esquerda);
+      topo.appendChild(direita);
+      cartao.appendChild(topo);
       var botaoCarrinho = document.createElement("button");
       botaoCarrinho.type = "button";
-      botaoCarrinho.className = "secundario";
       botaoCarrinho.textContent = c.origem === "Envia" ? "Comprar etiqueta" : "Enviar ao carrinho";
-      botaoCarrinho.disabled = false; // sem nota, o envio usa os dados da DC-e
       botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
-      acao.appendChild(botaoCarrinho);
-      tr.appendChild(acao);
-      corpo.appendChild(tr);
+      cartao.appendChild(botaoCarrinho);
+      corpo.appendChild(cartao);
     });
     if (!lista.length) {
-      var vazio = document.createElement("tr");
-      var td = document.createElement("td");
-      td.colSpan = 6;
-      td.textContent = "Nenhuma opção encontrada para esses dados.";
-      vazio.appendChild(td);
+      var vazio = document.createElement("p");
+      vazio.className = "suave";
+      vazio.textContent = "Nenhuma opção encontrada para esses dados.";
       corpo.appendChild(vazio);
     }
-    atualizarSetas();
+    atualizarOrdenacao();
   }
 
   function mostrarResultados(resultado) {
@@ -349,15 +412,15 @@ export const PAGINA_HTML = `<!doctype html>
       avisos.appendChild(li);
     });
     $("resultado").hidden = false;
+    liberarPasso3(true);
+    irEtapa(3);
   }
 
-  // Clicar no cabeçalho ordena; clicar de novo inverte.
-  $("cabecalho").addEventListener("click", function (e) {
-    var botao = e.target.closest ? e.target.closest("button.ordenar") : null;
+  // Escolher "Menor preço" ou "Menor prazo" reordena os cartões.
+  $("ordenacao").addEventListener("click", function (e) {
+    var botao = e.target.closest ? e.target.closest("button[data-campo]") : null;
     if (!botao) return;
-    var campo = botao.getAttribute("data-campo");
-    if (ordem.campo === campo) ordem.sentido = -ordem.sentido;
-    else ordem = { campo: campo, sentido: 1 };
+    ordem = { campo: botao.getAttribute("data-campo"), sentido: 1 };
     desenharLinhas();
   });
 
@@ -456,10 +519,10 @@ export const PAGINA_HTML = `<!doctype html>
     area.hidden = false;
   }
 
-  $("arquivoNfe").addEventListener("change", function (e) {
-    var arquivo = e.target.files && e.target.files[0];
+  function processarArquivo(arquivo) {
     if (!arquivo) return; // cancelar a escolha do arquivo não apaga nada
     zerarDados(); // nova nota: apaga a cotação anterior e os campos preenchidos antes
+    irEtapa(1);
     $("retorno").hidden = true;
     texto($("msg-pedido"), "");
     $("corpo-nfe").hidden = false;
@@ -479,9 +542,7 @@ export const PAGINA_HTML = `<!doctype html>
       }
       dadosNfe = r.dados.dados;
       atualizarDce();
-      $("nfe-resumo").textContent = "Nota " + (dadosNfe.nota.numero || "-") + " · remetente: " + dadosNfe.remetente.name +
-        " · valor: " + (dadosNfe.valorDeclarado != null ? reais(dadosNfe.valorDeclarado) : "-") +
-        " · frete na nota: " + (dadosNfe.valorFrete > 0 ? reais(dadosNfe.valorFrete) : "não informado");
+      mostrarResumoNota(dadosNfe);
       atualizarFreteNota();
       montarCamposNfe(dadosNfe.destinatario);
       if (dadosNfe.destinatario.postalCode) {
@@ -502,6 +563,20 @@ export const PAGINA_HTML = `<!doctype html>
       $("msg-carrinho").className = "msg erro";
       texto($("msg-carrinho"), "Não consegui ler o arquivo. Tente de novo.");
     });
+  }
+
+  $("arquivoNfe").addEventListener("change", function (e) {
+    processarArquivo(e.target.files && e.target.files[0]);
+  });
+
+  // Arrastar o XML para a área pontilhada também lê a nota.
+  var zonaNfe = $("zona-nfe");
+  zonaNfe.addEventListener("dragover", function (e) { e.preventDefault(); zonaNfe.classList.add("sobre"); });
+  zonaNfe.addEventListener("dragleave", function () { zonaNfe.classList.remove("sobre"); });
+  zonaNfe.addEventListener("drop", function (e) {
+    e.preventDefault();
+    zonaNfe.classList.remove("sobre");
+    processarArquivo(e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null);
   });
 
   function enviarCarrinho(c, botao) {
@@ -559,6 +634,7 @@ export const PAGINA_HTML = `<!doctype html>
       zerarDados();
       limparDce();
       $("arquivoNfe").value = "";
+      irEtapa(3); // mostra o resultado do pedido
     }).catch(function () {
       botao.disabled = false;
       $("msg-pedido").className = "msg erro";
@@ -617,6 +693,62 @@ export const PAGINA_HTML = `<!doctype html>
       $("msg-pedido").className = "msg erro";
       texto($("msg-pedido"), "Sem conexão. Confira no painel da Envia antes de tentar de novo.");
     });
+  }
+
+  // ---- Etapas: 1 nota fiscal, 2 dados do envio, 3 opções de frete ----
+  var etapaAtual = 1;
+
+  // Mostra só a etapa pedida. Usa classe própria para não brigar com o atributo hidden dos cartões.
+  function irEtapa(n) {
+    etapaAtual = n;
+    var itens = document.querySelectorAll("[data-etapa]");
+    for (var i = 0; i < itens.length; i++) {
+      itens[i].classList.toggle("etapa-oculta", Number(itens[i].getAttribute("data-etapa")) !== n);
+    }
+    var passos = document.querySelectorAll("#etapas button");
+    for (var j = 0; j < passos.length; j++) {
+      passos[j].classList.toggle("ativa", Number(passos[j].getAttribute("data-passo")) === n);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  // A terceira etapa só fica disponível depois de uma cotação.
+  function liberarPasso3(liberar) {
+    document.querySelector('#etapas button[data-passo="3"]').disabled = !liberar;
+  }
+
+  $("etapas").addEventListener("click", function (e) {
+    var botao = e.target.closest ? e.target.closest("button[data-passo]") : null;
+    if (!botao || botao.disabled) return;
+    irEtapa(Number(botao.getAttribute("data-passo")));
+  });
+  $("btn-ir-2").addEventListener("click", function () { irEtapa(2); });
+  $("btn-voltar-1").addEventListener("click", function () { irEtapa(1); });
+  $("btn-voltar-2").addEventListener("click", function () { irEtapa(2); });
+
+  // Resumo da nota lida: número, remetente, destinatário, valor e frete em cartões pequenos.
+  function mostrarResumoNota(d) {
+    var caixa = $("nfe-resumo");
+    caixa.textContent = "";
+    var grade = document.createElement("div");
+    grade.className = "resumo-nota";
+    [
+      ["Nota", d.nota.numero || "-"],
+      ["Remetente", d.remetente ? d.remetente.name : "-"],
+      ["Destinatário", d.destinatario ? d.destinatario.name : "-"],
+      ["Valor", d.valorDeclarado != null ? reais(d.valorDeclarado) : "-"],
+      ["Frete na nota", d.valorFrete > 0 ? reais(d.valorFrete) : "não informado"]
+    ].forEach(function (par) {
+      var item = document.createElement("div");
+      var rotulo = document.createElement("small");
+      rotulo.textContent = par[0];
+      var valor = document.createElement("span");
+      valor.textContent = par[1] || "-";
+      item.appendChild(rotulo);
+      item.appendChild(valor);
+      grade.appendChild(item);
+    });
+    caixa.appendChild(grade);
   }
 
   // ---- Recolher os cartões de nota e de dados ----
@@ -684,6 +816,7 @@ export const PAGINA_HTML = `<!doctype html>
     $("resumo-dados").textContent = "";
     $("frete-nota").textContent = "";
     desenharLinhas();
+    liberarPasso3(false);
   }
 
   // Mostra o frete cobrado na nota acima da tabela, para comparar com as opções.
