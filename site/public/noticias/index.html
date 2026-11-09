@@ -15,17 +15,19 @@
 </head>
 <body>
   <header class="topo">
-    <div class="container">
-      <a class="marca" href="/">Clique Frete</a>
-      <nav aria-label="Principal">
-        <ul>
-          <li><a href="/como-funciona">Como funciona</a></li>
-          <li><a href="/faq">Perguntas frequentes</a></li>
-          <li><a href="/noticias/">Notícias</a></li>
-          <li><a href="/contato">Contato</a></li>
-          <li><a href="https://app.cliquefrete.com.br">Entrar no app</a></li>
-        </ul>
+    <div class="container topo-inner">
+      <a class="marca" href="/" aria-label="Clique Frete - página inicial">
+        <span class="marca-icone" aria-hidden="true">C</span>
+        <span>Clique <strong>Frete</strong></span>
+      </a>
+      <nav class="nav-principal" id="nav-principal" aria-label="Navegação principal">
+        <a href="/#como-funciona">Como funciona</a>
+        <a href="/#para-quem">Para quem é</a>
+        <a href="/faq">Dúvidas</a>
+        <a href="/noticias/">Conteúdos</a>
       </nav>
+      <a class="botao botao-nav" href="https://app.cliquefrete.com.br/">Acessar aplicativo <span aria-hidden="true">↗</span></a>
+      <button class="menu-botao" type="button" aria-expanded="false" aria-controls="nav-principal" aria-label="Abrir menu"><span class="menu-icone" aria-hidden="true"></span></button>
     </div>
   </header>
 
@@ -62,5 +64,6 @@
 
   <!-- PENDENTE: confirmar o número real do WhatsApp. 5547999998888 parece número de exemplo. Atualizar em todos os links wa.me deste arquivo (e nos demais arquivos do site) quando o número for confirmado. -->
   <a class="botao whats botao-flutuante" href="https://wa.me/5547999998888?text=Oi%2C%20quero%20saber%20como%20economizar%20no%20frete" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">WhatsApp</a>
+  <script src="/assets/site.js" defer></script>
 </body>
 </html>
