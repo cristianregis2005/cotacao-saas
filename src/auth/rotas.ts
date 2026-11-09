@@ -140,7 +140,7 @@ authRotas.post("/verificar", async (c) => {
 authRotas.get("/eu", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Não logado." }, 401);
-  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id);
+  const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id, !!usuario.is_admin);
   return c.json({
     email: usuario.email,
     nome: usuario.nome,
