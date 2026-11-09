@@ -70,7 +70,7 @@ const TERMOS_CORPO = `
 </ul>
 
 <h2>6. Planos e acesso</h2>
-<p>O acesso gratuito dura 7 dias, com cotações ilimitadas durante o período. Para contas já existentes, o prazo começa na data da mudança. Cada e-mail e cada CPF/CNPJ tem direito a essa franquia uma única vez, inclusive depois da exclusão da conta. Planos pagos dão 30 dias de acesso, também sem limite de cotações. Os preços e as condições de cobrança serão informados antes de qualquer cobrança. Depois do período de acesso, é preciso escolher um plano para continuar cotando.</p>
+<p>O acesso gratuito dura 7 dias, com cotações ilimitadas durante o período. Cada e-mail e cada CPF/CNPJ tem direito a essa franquia uma única vez, inclusive depois da exclusão da conta. Planos pagos dão 30 dias de acesso, também sem limite de cotações. Os preços e as condições de cobrança serão informados antes de qualquer cobrança. Depois do período de acesso, é preciso escolher um plano para continuar cotando.</p>
 <p>Você pode excluir sua conta a qualquer momento, em Minha conta.</p>
 
 <h2>7. Uso adequado</h2>
