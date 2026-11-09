@@ -14,6 +14,9 @@ export const ADMIN_HTML = `<!doctype html>
   body { margin: 0; background: var(--fundo); color: var(--texto); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .casca { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
   .menu-lateral { background: var(--cartao); border-right: 1px solid var(--borda); padding: 16px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .menu-lateral a.marca-admin { display: block; padding: 0; margin: 0 0 16px 4px; background: none; }
+  .menu-lateral a.marca-admin:hover { background: none; }
+  .marca-admin img { height: 64px; width: auto; display: block; }
   .menu-lateral a { display: block; padding: 9px 12px; border-radius: 8px; color: var(--texto); text-decoration: none; margin-bottom: 4px; }
   .menu-lateral a:hover { background: var(--fundo); }
   .menu-lateral a.ativo { background: var(--destaque); color: #fff; }
@@ -24,6 +27,8 @@ export const ADMIN_HTML = `<!doctype html>
     .casca { grid-template-columns: 1fr; }
     .menu-lateral { position: sticky; top: 0; z-index: 5; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--borda); padding: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
     .menu-lateral a { margin: 0; white-space: nowrap; }
+    .menu-lateral a.marca-admin { margin: 0 8px 0 0; }
+    .marca-admin img { height: 40px; }
     .menu-lateral .submenu { display: flex; gap: 4px; margin: 0 0 0 4px; }
     main { padding: 16px; }
   }
@@ -72,6 +77,7 @@ export const ADMIN_HTML = `<!doctype html>
 <body>
 <div class="casca">
 <nav class="menu-lateral" aria-label="Menu do administrador">
+  <a class="marca-admin" href="https://cliquefrete.com.br/" aria-label="Clique Frete - site"><img src="https://cliquefrete.com.br/assets/logo.png" alt="Clique Frete"></a>
   <a href="#usuarios" data-menu="usuarios">Usuários</a>
   <a href="#planos" data-menu="planos">Planos</a>
   <a href="#transportadoras" data-menu="transportadoras">Transportadoras</a>
