@@ -143,3 +143,5 @@ footer.rodape ul { list-style: none; padding: 0; display: flex; gap: 16px; flex-
   nav ul { gap: 10px; }
   section { padding: 28px 0; }
 }
+
+.marca img { height: 44px; width: auto; display: block; }
