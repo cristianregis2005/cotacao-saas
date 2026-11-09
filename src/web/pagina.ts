@@ -244,6 +244,7 @@ export const PAGINA_HTML = `<!doctype html>
       botao.disabled = false;
       if (!r.ok) { texto($("msg-entrar"), r.dados.erro || "Não consegui enviar o código."); return; }
       $("form-codigo").hidden = false;
+      $("codigo").value = "";
       $("codigo").focus();
     }).catch(function () {
       botao.disabled = false;
