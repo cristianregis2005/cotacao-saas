@@ -16,7 +16,7 @@ import {
 import { criarNoCarrinho, type TransportadoraCarrinho } from "./enviar";
 import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { cancelarEtiquetaEnvia, gerarEtiquetaEnvia } from "../carriers/enviaEtiqueta";
-import { recusaCarrinho } from "../erros";
+import { recusaCarrinho, traduzirRecusaEnvia } from "../erros";
 import { transportadorasDesligadas } from "../cotacoes/rotas";
 import { chaveTransportadora } from "../transportadoras/chaves";
 
@@ -287,7 +287,7 @@ async function comprarEtiquetaEnvia(
       );
     }
     if (resultado.mensagem) {
-      return c.json({ erro: "A Envia recusou o pedido: " + resultado.mensagem }, 502);
+      return c.json({ erro: traduzirRecusaEnvia(resultado.mensagem) }, 502);
     }
     return c.json({ erro: recusaCarrinho("Envia", resultado.status, resultado.corpo) }, 502);
   }
