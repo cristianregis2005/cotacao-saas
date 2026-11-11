@@ -62,10 +62,37 @@ export const PAGINA_HTML = `<!doctype html>
   .etapa-oculta { display: none !important; }
   .etapas { display: flex; gap: 8px; margin: 0 0 16px; }
   .aviso-topo { position: sticky; top: 0; z-index: 10; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .cabecalho, .fundo-menu, .folha-menu, .barra-inferior, .titulo-mobile { display: none; }
+  @media (max-width: 767px) {
+  .card-desktop { display: none; }
+  .titulo-mobile { display: block; margin: 0 0 14px; font-size: 1.5rem; font-weight: 700; }
+  body:has(#cotar:not([hidden])) main > h1 { display: none; }
+  body { padding-bottom: 150px; }
+  .aviso-topo { position: fixed; top: auto; left: 50%; transform: translateX(-50%); width: min(calc(100% - 32px), 720px); bottom: calc(78px + env(safe-area-inset-bottom)); z-index: 30; margin: 0; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--cartao); color: var(--texto); font-weight: 600; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+  .barra-inferior { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: space-around; background: var(--destaque); padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .barra-inferior[hidden] { display: none; }
+  .barra-item { flex: 1; max-width: 140px; min-height: 52px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 12px; text-decoration: none; cursor: pointer; }
+  .barra-item svg { width: 22px; height: 22px; }
+  .barra-item.ativo { font-weight: 600; background: rgba(255,255,255,0.18); }
+  .cabecalho { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 12px; }
+  .logo-cabecalho { height: 60px; width: auto; display: block; mix-blend-mode: multiply; }
+  .icone-usuario { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: var(--destaque); color: #fff; }
+  .icone-usuario svg { width: 20px; height: 20px; }
+  .fundo-menu { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.45); }
+  .folha-menu { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); background: var(--cartao); border-radius: 18px 18px 0 0; }
+  .folha-menu[hidden], .fundo-menu[hidden] { display: none; }
+  .item-menu { width: 100%; min-height: 52px; margin-top: 6px; padding: 0 14px; text-align: left; border: 1px solid var(--borda); border-radius: 10px; background: var(--cartao); color: var(--texto); font: inherit; font-size: 16px; font-weight: 600; }
+  .item-menu.perigo { color: var(--erro); }
+  .fundo-menu { display: block; }
+  }
   .aviso-topo[hidden] { display: none; }
-  .aviso-topo.ok { border-color: var(--ok); color: var(--ok); }
-  .aviso-topo.erro { border-color: var(--erro); color: var(--erro); }
-  .aviso-topo.info { color: var(--suave); }
+  .aviso-topo.ok { background: #15803d; border-color: #15803d; color: #fff; }
+  .aviso-topo.erro { background: #b42318; border-color: #b42318; color: #fff; }
+  .aviso-topo.info { background: #1d2330; border-color: #1d2330; color: #fff; }
+  .aviso-topo .secundario { background: #fff; color: #1d2330; border: 0; }
+  .aviso-texto { margin: 0; }
+  .aviso-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  .aviso-acoes:empty { display: none; }
   [data-aviso] { display: none; }
   .etapas button { flex: 1; padding: 10px 8px; font-size: 0.9rem; background: var(--cartao); color: var(--suave); border: 1px solid var(--borda); }
   .etapas button.ativa { background: var(--destaque); color: #fff; border-color: var(--destaque); }
@@ -97,7 +124,7 @@ export const PAGINA_HTML = `<!doctype html>
 </head>
 <body>
 <main>
-  <h1>Comparador de fretes</h1>
+  <h1>Crie uma cotação</h1>
 
   <section id="entrar" class="cartao" hidden>
     <h2>Entrar</h2>
@@ -118,17 +145,36 @@ export const PAGINA_HTML = `<!doctype html>
   </section>
 
   <section id="cotar" hidden>
-    <div class="cartao linha">
-      <span><span id="quem"></span><br><small id="uso" style="color:var(--suave)"></small></span>
-      <span><a href="/conta">Minha conta</a> &nbsp; <button class="secundario" id="btn-sair" type="button">Sair</button></span>
+    <div class="cartao linha card-desktop">
+      <span><span id="quem-d"></span><br><small id="uso-d" style="color:var(--suave)"></small></span>
+      <span><a href="/conta">Minha conta</a> &nbsp; <button class="secundario" id="btn-sair-d" type="button">Sair</button></span>
     </div>
+    <header class="cabecalho">
+      <img class="logo-cabecalho" src="https://cliquefrete.com.br/assets/logo.png" alt="Clique Frete">
+      <button type="button" class="icone-usuario" id="btn-usuario" aria-label="Abrir menu do usuário" aria-expanded="false" aria-controls="menu-usuario">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      </button>
+    </header>
+    <p class="titulo-mobile">Crie uma cotação</p>
+    <div class="fundo-menu" id="fundo-menu" hidden></div>
+    <section class="folha-menu" id="menu-usuario" role="dialog" aria-modal="true" aria-label="Menu do usuário" hidden>
+      <span class="suave">Conectado como</span>
+      <strong id="quem"></strong>
+      <small id="uso" class="suave"></small>
+      <button type="button" class="item-menu perigo" id="btn-sair">Sair</button>
+    </section>
 
     <nav class="etapas" id="etapas" aria-label="Etapas da cotação">
       <button type="button" data-passo="1" class="ativa">1. Nota fiscal</button>
       <button type="button" data-passo="2">2. Dados do envio</button>
       <button type="button" data-passo="3" disabled>3. Opções de frete</button>
     </nav>
-    <div class="aviso-topo" id="aviso-topo" role="status" aria-live="polite" hidden></div>
+    <div class="aviso-topo" id="aviso-topo" role="status" aria-live="polite" hidden>
+      <p class="aviso-texto" id="aviso-texto"></p>
+      <div class="aviso-acoes" id="aviso-acoes">
+        <button type="button" class="secundario" id="btn-liberar" hidden>Liberar esta nota para novo envio</button>
+      </div>
+    </div>
 
     <section class="cartao" id="secao-carrinho" data-etapa="1">
       <div class="cabecalho-recolhivel">
@@ -137,7 +183,7 @@ export const PAGINA_HTML = `<!doctype html>
         <button type="button" class="alternar" id="btn-nfe" aria-label="Recolher" title="Recolher"></button>
       </div>
       <div id="corpo-nfe">
-        <p class="suave">Envie a nota fiscal ou preencha os dados do pacote.</p>
+        <p class="suave">Envie a nota fiscal (cadastro na plataforma com CNPJ) ou preencha os dados do pacote abaixo (cadastro na plataforma com CPF).</p>
         <label class="soltar" id="zona-nfe">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
           <strong>Arraste o XML da nota aqui</strong>
@@ -152,7 +198,7 @@ export const PAGINA_HTML = `<!doctype html>
 
     <section class="cartao" id="secao-dce" data-etapa="1">
       <h2>Sem nota fiscal (DC-e)</h2>
-      <p class="suave">Só para pessoa física (CPF no cadastro). Preencha o destinatário e os produtos com os valores reais. A declaração segue junto com o pedido.</p>
+      <p class="suave">Só para pessoa física (CPF no cadastro). Preencha o destinatário e os produtos que está enviando. Essa descrição será utilizada também na declaração de conteúdo que seguirá junto com o seu pedido.</p>
       <div class="grade">
         <label>Nome do destinatário <input id="dce-nome" autocomplete="off"></label>
         <label>CPF ou CNPJ do destinatário <input id="dce-documento" inputmode="numeric"></label>
@@ -213,10 +259,9 @@ export const PAGINA_HTML = `<!doctype html>
       <ul class="avisos" id="avisos"></ul>
     </section>
 
-    <section class="cartao" id="retorno" data-etapa="3" hidden>
+    <div id="retorno" data-etapa="3" hidden>
       <p class="msg" id="msg-pedido" data-aviso></p>
-      <button type="button" class="secundario" id="btn-liberar" hidden>Liberar esta nota para novo envio</button>
-    </section>
+    </div>
     <div class="navegacao" data-etapa="3">
       <button type="button" class="secundario" id="btn-voltar-2">Voltar aos dados do envio</button>
     </div>
@@ -224,6 +269,20 @@ export const PAGINA_HTML = `<!doctype html>
   </section>
   <footer class="suave" style="text-align:center;margin:24px 0 8px;font-size:0.8rem;color:var(--suave)"><a href="/termos">Termos de uso</a> · <a href="/privacidade">Privacidade</a></footer>
 </main>
+<nav class="barra-inferior" id="barra-inferior" aria-label="Navegação principal" hidden>
+  <button type="button" class="barra-item ativo" id="barra-cotar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z"/></svg>
+    <span>Cotar</span>
+  </button>
+  <a class="barra-item" href="/conta">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+    <span>Minha conta</span>
+  </a>
+  <a class="barra-item" href="https://cliquefrete.com.br/faq.html" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
+    <span>Ajuda</span>
+  </a>
+</nav>
 
 <script>
 (function () {
@@ -242,12 +301,16 @@ export const PAGINA_HTML = `<!doctype html>
   function mostrar(secao) {
     $("entrar").hidden = secao !== "entrar";
     $("cotar").hidden = secao !== "cotar";
+    $("barra-inferior").hidden = secao !== "cotar";
   }
 
   // Mensagens de cotação, nota e pedido aparecem só no aviso do topo (verde ou vermelho). Valor vazio limpa o aviso.
   var avisoOrigem = null; // qual mensagem está no topo; só ela pode apagar o aviso
   function texto(el, valor) {
     el.textContent = valor;
+    // E-mail e acesso também aparecem no cartão do desktop (ids com sufixo -d).
+    var copia = el.id ? document.getElementById(el.id + "-d") : null;
+    if (copia) copia.textContent = valor;
     if (el.hasAttribute("data-aviso")) {
       if (!valor) {
         if (avisoOrigem === el) { $("aviso-topo").hidden = true; avisoOrigem = null; }
@@ -262,9 +325,12 @@ export const PAGINA_HTML = `<!doctype html>
   function avisar(valor, tipo) {
     var a = $("aviso-topo");
     a.className = "aviso-topo " + (tipo || "info");
-    texto(a, valor);
+    $("aviso-texto").textContent = valor;
+    // Ações antigas (liberar nota, baixar/cancelar etiqueta) saem com a mensagem anterior.
+    $("btn-liberar").hidden = true;
+    var acoesAntigas = document.getElementById("acoes-envia");
+    if (acoesAntigas) acoesAntigas.parentNode.removeChild(acoesAntigas);
     a.hidden = false;
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function reais(valor) {
@@ -347,6 +413,9 @@ export const PAGINA_HTML = `<!doctype html>
     });
   });
 
+  $("btn-sair-d").addEventListener("click", function () {
+    api("/api/auth/sair", {}).then(function () { location.reload(); });
+  });
   $("btn-sair").addEventListener("click", function () {
     api("/api/auth/sair", {}).then(function () { location.reload(); });
   });
@@ -690,7 +759,7 @@ export const PAGINA_HTML = `<!doctype html>
       area = document.createElement("div");
       area.id = "acoes-envia";
       area.style.marginTop = "10px";
-      $("retorno").appendChild(area);
+      $("aviso-acoes").appendChild(area);
     }
     area.textContent = "";
     if (d.etiqueta) {
@@ -812,6 +881,18 @@ export const PAGINA_HTML = `<!doctype html>
   }
   $("btn-nfe").addEventListener("click", function () { alternarCard("corpo-nfe", "btn-nfe"); });
   $("btn-dados").addEventListener("click", function () { alternarCard("corpo-dados", "btn-dados"); });
+
+  $("barra-cotar").addEventListener("click", function () { irEtapa(1); });
+
+  // Menu do usuário: abre pelo ícone; fecha pelo fundo ou pela tecla Esc.
+  function abrirMenuUsuario(abrir) {
+    $("menu-usuario").hidden = !abrir;
+    $("fundo-menu").hidden = !abrir;
+    $("btn-usuario").setAttribute("aria-expanded", abrir ? "true" : "false");
+  }
+  $("btn-usuario").addEventListener("click", function () { abrirMenuUsuario($("menu-usuario").hidden); });
+  $("fundo-menu").addEventListener("click", function () { abrirMenuUsuario(false); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") abrirMenuUsuario(false); });
 
   $("btn-liberar").addEventListener("click", function () {
     if (!pendenteLiberar) return;
@@ -1007,6 +1088,8 @@ export const PAGINA_HTML = `<!doctype html>
       texto($("dicaDce"), "");
       return;
     }
+    // Ao sair do campo, busca de novo mesmo que o CEP seja o mesmo: o endereço é sempre atualizado.
+    ultimoCepDce = "";
     buscarCepDce();
   });
 
