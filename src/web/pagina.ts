@@ -663,7 +663,8 @@ export const PAGINA_HTML = `<!doctype html>
         buscarDica("cepOrigem", "dicaOrigem");
       }
       if (dadosNfe.valorDeclarado != null) $("valor").value = String(dadosNfe.valorDeclarado);
-      if (dadosNfe.pesoNota > 0 && !$("peso").value) $("peso").value = String(dadosNfe.pesoNota);
+      // O peso da nota sempre vale, mesmo que haja um peso lembrado de cotação anterior.
+      if (dadosNfe.pesoNota > 0) $("peso").value = String(dadosNfe.pesoNota);
       $("msg-carrinho").className = "msg ok";
       texto($("msg-carrinho"), "Nota lida. Confira os dados do destinatário e escolha a opção de frete na tabela.");
       desenharLinhas();
