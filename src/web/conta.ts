@@ -42,13 +42,43 @@ export const CONTA_HTML = `<!doctype html>
   .bloco-token { border: 1px solid var(--borda); border-radius: 10px; padding: 12px; margin-top: 10px; background: var(--fundo); }
   .bloco-token input[type="radio"] { display: inline-block; width: auto; margin: 0 6px 0 0; }
   .bloco-token .msg:empty { margin: 0; min-height: 0; }
+  .cabecalho, .fundo-menu, .folha-menu, .barra-inferior { display: none; }
+  @media (max-width: 767px) {
+    .card-desktop { display: none; }
+    body { padding-bottom: 110px; }
+    .cabecalho { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 12px; }
+    .logo-cabecalho { height: 60px; width: auto; display: block; mix-blend-mode: multiply; }
+    .icone-usuario { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: var(--destaque); color: #fff; }
+    .icone-usuario svg { width: 20px; height: 20px; }
+    .fundo-menu { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.45); }
+    .folha-menu { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; max-width: 720px; margin: 0 auto; flex-direction: column; gap: 6px; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); background: var(--cartao); border-radius: 18px 18px 0 0; }
+    .item-menu { width: 100%; min-height: 52px; margin-top: 6px; padding: 0 14px; text-align: left; border: 1px solid var(--borda); border-radius: 10px; background: var(--cartao); color: var(--texto); font: inherit; font-size: 16px; font-weight: 600; }
+    .item-menu.perigo { color: var(--erro); }
+    .barra-inferior { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; justify-content: space-around; background: var(--destaque); padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+    .barra-item { flex: 1; max-width: 140px; min-height: 52px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 12px; text-decoration: none; cursor: pointer; }
+    .barra-item svg { width: 22px; height: 22px; }
+    .barra-item.ativo { font-weight: 600; background: rgba(255,255,255,0.18); }
+  }
+  .item-token { padding: 12px 0; border-top: 1px solid var(--borda); }
+  .item-token .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .item-token .acoes button { padding: 8px 12px; font-size: 0.9rem; }
+  .form-token { margin-top: 12px; }
+  .form-token .acoes { display: flex; gap: 8px; }
+  .form-token .acoes button { padding: 10px 14px; }
+  .dica-campo { font-size: 0.8rem; color: var(--suave); margin: -4px 0 12px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
+  <header class="cabecalho">
+    <img class="logo-cabecalho" src="https://cliquefrete.com.br/assets/logo.png" alt="Clique Frete">
+    <button type="button" class="icone-usuario" id="btn-usuario" aria-label="Abrir menu do usuário" aria-expanded="false" aria-controls="menu-usuario">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+    </button>
+  </header>
   <h1>Minha conta</h1>
-  <section class="cartao linha">
+  <section class="cartao linha card-desktop">
     <span class="suave">Tokens, dados e agências de coleta.</span>
     <a class="botao secundario" href="/">Voltar para as cotações</a>
   </section>
@@ -58,9 +88,69 @@ export const CONTA_HTML = `<!doctype html>
   <div id="agencias"></div>
   <div id="excluir"></div>
 </main>
+<div class="fundo-menu" id="fundo-menu" hidden></div>
+<section class="folha-menu" id="menu-usuario" role="dialog" aria-modal="true" aria-label="Menu do usuário" hidden>
+  <span class="suave">Conectado como</span>
+  <strong id="quem"></strong>
+  <small id="uso" class="suave"></small>
+  <button type="button" class="item-menu perigo" id="btn-sair">Sair</button>
+</section>
+<nav class="barra-inferior" id="barra-inferior" aria-label="Navegação principal">
+  <a class="barra-item" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z"/></svg>
+    <span>Cotar</span>
+  </a>
+  <a class="barra-item ativo" href="/conta" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+    <span>Minha conta</span>
+  </a>
+  <a class="barra-item" href="/ajuda">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
+    <span>Ajuda</span>
+  </a>
+</nav>
 <script>
 (function () {
   function $(id) { return document.getElementById(id); }
+
+  // Menu do usuário (mesmo comportamento da página de cotação).
+  function abrirMenuUsuario(abrir) {
+    $("menu-usuario").hidden = !abrir;
+    $("fundo-menu").hidden = !abrir;
+    $("btn-usuario").setAttribute("aria-expanded", abrir ? "true" : "false");
+  }
+  $("btn-usuario").addEventListener("click", function () { abrirMenuUsuario($("menu-usuario").hidden); });
+  $("fundo-menu").addEventListener("click", function () { abrirMenuUsuario(false); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") abrirMenuUsuario(false); });
+
+  $("btn-sair").addEventListener("click", function () {
+    fetch("/api/auth/sair", { method: "POST", credentials: "same-origin" }).then(function () { location.href = "/"; });
+  });
+
+  // A data é gravada em UTC; aqui ela é mostrada no horário de Brasília.
+  function formatarAcesso(acessoAte) {
+    var d = new Date(acessoAte.replace(" ", "T") + "Z");
+    var partes = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+    var p = function (t) { var x = partes.find(function (y) { return y.type === t; }); return x ? x.value : ""; };
+    return p("day") + "/" + p("month") + "/" + p("year") + " às " + p("hour") + ":" + p("minute");
+  }
+  function mostrarUso(uso) {
+    if (!uso) return;
+    if (uso.ativo && uso.acesso_ate) {
+      $("uso").textContent = "Acesso ativo até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)";
+    } else if (uso.motivo === "administrador") {
+      $("uso").textContent = "Conta de administrador: acesso sem prazo.";
+    } else if (uso.motivo === "sem_franquia") {
+      $("uso").textContent = "Seu acesso gratuito já foi usado. Escolha um plano para continuar.";
+    } else {
+      $("uso").textContent = "Seu período de acesso terminou. Escolha um plano para continuar.";
+    }
+  }
+  api("/api/auth/eu").then(function (r) {
+    if (!r.ok) return;
+    $("quem").textContent = r.dados.email;
+    mostrarUso(r.dados.uso);
+  });
 
   function api(caminho, corpo, metodo) {
     var opcoes = { method: metodo || (corpo ? "POST" : "GET"), headers: { "Content-Type": "application/json" }, credentials: "same-origin" };
@@ -80,127 +170,131 @@ export const CONTA_HTML = `<!doctype html>
   var CANCELAR = icone('<path d="M18 6 6 18M6 6l12 12"/>');
   var LIXEIRA = icone('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>');
 
-  function montarCartao(t) {
+  // Um único cartão "Tokens": uma linha por transportadora. O formulário só aparece ao trocar ou adicionar.
+  function montarTokens(lista) {
     var cartao = document.createElement("section");
     cartao.className = "cartao";
+    var titulo = document.createElement("h2");
+    titulo.textContent = "Tokens";
+    cartao.appendChild(titulo);
+    var ajuda = document.createElement("p");
+    ajuda.className = "suave";
+    ajuda.textContent = "Chaves de cada plataforma usadas nas cotações. Os tokens são guardados criptografados.";
+    cartao.appendChild(ajuda);
+    lista.forEach(function (t) { cartao.appendChild(montarItem(t)); });
+    return cartao;
+  }
 
-    var topo = document.createElement("div");
-    topo.className = "linha";
-    var titulo = document.createElement("strong");
-    titulo.textContent = t.nome;
-    var status = document.createElement("span");
-    status.className = "status" + (t.configurado ? " ok" : "");
-    status.textContent = t.configurado ? "Criptografado · termina em " + t.final_token : "Não configurado";
-    topo.appendChild(titulo);
-    topo.appendChild(status);
-    cartao.appendChild(topo);
+  function montarItem(t) {
+    var item = document.createElement("div");
+    item.className = "item-token";
 
-    // Token salvo: campo mostra asteriscos e os ícones trocam ou removem.
-    // Em edição: o ícone da esquerda salva e o da direita cancela.
-    var editando = !t.configurado;
+    var linha = document.createElement("div");
+    linha.className = "linha";
+    var info = document.createElement("div");
+    var nome = document.createElement("strong");
+    nome.textContent = t.nome;
+    var situacao = document.createElement("div");
+    situacao.className = "status" + (t.configurado ? " ok" : "");
+    situacao.textContent = t.configurado ? "Configurado · final " + t.final_token : "Não configurado";
+    info.appendChild(nome);
+    info.appendChild(situacao);
+
+    var acoes = document.createElement("div");
+    acoes.className = "acoes";
+    var botaoEditar = document.createElement("button");
+    botaoEditar.type = "button";
+    botaoEditar.className = "secundario";
+    botaoEditar.textContent = t.configurado ? "Trocar" : "Adicionar";
+    acoes.appendChild(botaoEditar);
+    var botaoRemover = null;
+    if (t.configurado) {
+      botaoRemover = document.createElement("button");
+      botaoRemover.type = "button";
+      botaoRemover.className = "perigo";
+      botaoRemover.textContent = "Remover";
+      acoes.appendChild(botaoRemover);
+    }
+    linha.appendChild(info);
+    linha.appendChild(acoes);
+    item.appendChild(linha);
 
     var form = document.createElement("form");
-    var linha = document.createElement("div");
-    linha.className = "token-linha";
-
+    form.className = "form-token";
+    form.hidden = true;
     var rotuloToken = document.createElement("label");
     rotuloToken.textContent = "Token da " + t.nome;
     var inputToken = document.createElement("input");
     inputToken.type = "password";
     inputToken.autocomplete = "off";
-    inputToken.placeholder = "Cole o token";
+    inputToken.placeholder = "Cole o token aqui";
+    inputToken.required = true;
     rotuloToken.appendChild(inputToken);
-    linha.appendChild(rotuloToken);
-
-    var botaoTrocar = document.createElement("button");
-    botaoTrocar.className = "icone";
-    var botaoRemover = document.createElement("button");
-    botaoRemover.type = "button";
-    botaoRemover.className = "icone perigo";
-    linha.appendChild(botaoTrocar);
-    linha.appendChild(botaoRemover);
-    form.appendChild(linha);
-
     var rotuloContato = document.createElement("label");
-    rotuloContato.textContent = "E-mail de contato (opcional, usa o seu e-mail se ficar em branco)";
+    rotuloContato.textContent = "E-mail de contato (opcional)";
     var inputContato = document.createElement("input");
     inputContato.type = "email";
     inputContato.value = t.contato || "";
     rotuloContato.appendChild(inputContato);
-    form.appendChild(rotuloContato);
-
+    var dica = document.createElement("p");
+    dica.className = "dica-campo";
+    dica.textContent = "Se ficar em branco, usamos o seu e-mail.";
+    var botoesForm = document.createElement("div");
+    botoesForm.className = "acoes";
+    var botaoSalvar = document.createElement("button");
+    botaoSalvar.type = "submit";
+    botaoSalvar.textContent = "Salvar";
+    var botaoCancelar = document.createElement("button");
+    botaoCancelar.type = "button";
+    botaoCancelar.className = "secundario";
+    botaoCancelar.textContent = "Cancelar";
+    botoesForm.appendChild(botaoSalvar);
+    botoesForm.appendChild(botaoCancelar);
     var msg = document.createElement("p");
     msg.className = "msg";
+    form.appendChild(rotuloToken);
+    form.appendChild(rotuloContato);
+    form.appendChild(dica);
+    form.appendChild(botoesForm);
     form.appendChild(msg);
+    item.appendChild(form);
 
-    function desenhar() {
-      if (editando) {
-        inputToken.readOnly = false;
-        inputToken.required = true;
-        botaoTrocar.type = "submit";
-        botaoTrocar.innerHTML = CONFIRMAR;
-        botaoTrocar.title = "Salvar token";
-        botaoTrocar.setAttribute("aria-label", "Salvar token");
-        botaoRemover.innerHTML = CANCELAR;
-        botaoRemover.title = "Cancelar";
-        botaoRemover.setAttribute("aria-label", "Cancelar");
-        botaoRemover.hidden = !t.configurado;
-      } else {
-        inputToken.readOnly = true;
-        inputToken.required = false;
-        inputToken.value = "*".repeat(24);
-        botaoTrocar.type = "button";
-        botaoTrocar.innerHTML = LAPIS;
-        botaoTrocar.title = "Trocar token";
-        botaoTrocar.setAttribute("aria-label", "Trocar token");
-        botaoRemover.innerHTML = LIXEIRA;
-        botaoRemover.title = "Remover token";
-        botaoRemover.setAttribute("aria-label", "Remover token");
-        botaoRemover.hidden = false;
-      }
-    }
-
-    botaoTrocar.addEventListener("click", function () {
-      if (editando) return; // em edição, o envio do formulário salva
-      editando = true;
+    function abrirForm() {
+      form.hidden = false;
+      acoes.hidden = true;
       inputToken.value = "";
       msg.className = "msg";
       msg.textContent = "";
-      desenhar();
       inputToken.focus();
-    });
+    }
+    function fecharForm() {
+      form.hidden = true;
+      acoes.hidden = false;
+      inputToken.value = "";
+      msg.className = "msg";
+      msg.textContent = "";
+    }
 
-    botaoRemover.addEventListener("click", function () {
-      if (editando) {
-        if (!t.configurado) return;
-        editando = false;
-        inputToken.value = "";
-        msg.className = "msg";
-        msg.textContent = "";
-        desenhar();
-        return;
-      }
-      if (!confirm("Remover o token da " + t.nome + "?")) return;
-      api("/api/conta/tokens/" + t.transportadora, null, "DELETE").then(function () { carregar(); });
-    });
-
+    botaoEditar.addEventListener("click", abrirForm);
+    botaoCancelar.addEventListener("click", fecharForm);
+    if (botaoRemover) {
+      botaoRemover.addEventListener("click", function () {
+        if (!confirm("Remover o token da " + t.nome + "?")) return;
+        api("/api/conta/tokens/" + t.transportadora, null, "DELETE").then(function () { carregar(); });
+      });
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      botaoTrocar.disabled = true;
+      botaoSalvar.disabled = true;
       msg.className = "msg";
       msg.textContent = "";
       api("/api/conta/tokens/" + t.transportadora, { token: inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
-        botaoTrocar.disabled = false;
+        botaoSalvar.disabled = false;
         if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui salvar."; return; }
-        msg.className = "msg ok";
-        msg.textContent = "Token salvo.";
         carregar();
       });
     });
-
-    cartao.appendChild(form);
-    desenhar();
-    return cartao;
+    return item;
   }
 
   function carregar() {
@@ -212,7 +306,7 @@ export const CONTA_HTML = `<!doctype html>
       }
       var cartoes = $("cartoes");
       cartoes.textContent = "";
-      r.dados.transportadoras.forEach(function (t) { cartoes.appendChild(montarCartao(t)); });
+      cartoes.appendChild(montarTokens(r.dados.transportadoras));
     });
   }
 
