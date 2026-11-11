@@ -444,17 +444,24 @@ export const PAGINA_HTML = `<!doctype html>
     }
   }
 
+  // Mostra no máximo as opções mais baratas. A ordenação escolhida vale para essas opções.
+  var MAXIMO_OPCOES = 10;
+  function ordenarPor(campo, sentido) {
+    return function (a, b) {
+      var va = a[campo], vb = b[campo];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * sentido;
+    };
+  }
+
   // Cada opção vira um cartão: transportadora, serviço, prazo, preço e o botão de envio.
   function desenharLinhas() {
     var corpo = $("linhas");
     corpo.textContent = "";
-    var lista = resultadoAtual.slice().sort(function (a, b) {
-      var va = a[ordem.campo], vb = b[ordem.campo];
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      return (va - vb) * ordem.sentido;
-    });
+    var maisBaratas = resultadoAtual.slice().sort(ordenarPor("preco", 1)).slice(0, MAXIMO_OPCOES);
+    var lista = maisBaratas.sort(ordenarPor(ordem.campo, ordem.sentido));
     lista.forEach(function (c, i) {
       var destaque = i === 0 && ordem.sentido === 1;
       var cartao = document.createElement("div");
@@ -558,7 +565,10 @@ export const PAGINA_HTML = `<!doctype html>
       texto($("msg-pedido"), "");
       $("retorno").hidden = true;
       $("msg-cotar").className = "msg ok";
-      texto($("msg-cotar"), "Cotação concluída: " + (r.dados.cotacoes || []).length + " opção(ões) encontrada(s).");
+      var total = (r.dados.cotacoes || []).length;
+      texto($("msg-cotar"), total > MAXIMO_OPCOES
+        ? "Cotação concluída: mostrando as " + MAXIMO_OPCOES + " opções mais baratas de " + total + " encontradas."
+        : "Cotação concluída: " + total + " opção(ões) encontrada(s).");
       ultimaEntrada = { peso: corpo.peso, comprimento: corpo.comprimento, largura: corpo.largura, altura: corpo.altura };
       mostrarUso(r.dados.uso);
       mostrarResultados(r.dados);
