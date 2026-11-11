@@ -286,7 +286,7 @@ export const PAGINA_HTML = `<!doctype html>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
     <span>Minha conta</span>
   </a>
-  <a class="barra-item" href="https://cliquefrete.com.br/faq.html" target="_blank" rel="noopener">
+  <a class="barra-item" href="/ajuda">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
     <span>Ajuda</span>
   </a>
