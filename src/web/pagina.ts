@@ -22,6 +22,9 @@ export const PAGINA_HTML = `<!doctype html>
   input { display: block; width: 100%; margin-top: 4px; padding: 10px; font-size: 1rem; border: 1px solid var(--borda); border-radius: 8px; background: var(--fundo); color: var(--texto); }
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .grade { grid-template-columns: 1fr; } }
+  .dimensoes { grid-column: 1 / -1; }
+  .rotulo-grupo { display: block; font-size: 0.9rem; color: var(--suave); margin-bottom: 10px; }
+  .trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 10px; }
   button { padding: 11px 16px; font-size: 1rem; font-weight: 600; border: 0; border-radius: 8px; background: var(--destaque); color: #fff; cursor: pointer; }
   button[disabled] { opacity: 0.6; cursor: wait; }
   button.secundario { background: transparent; color: var(--destaque); border: 1px solid var(--borda); }
@@ -236,9 +239,14 @@ export const PAGINA_HTML = `<!doctype html>
         <label>CEP de destino <input id="cepDestino" inputmode="numeric" required><small class="dica" id="dicaDestino"></small></label>
         <label>Peso (kg) <input id="peso" inputmode="decimal" required></label>
         <label>Valor declarado (R$) <input id="valor" inputmode="decimal"></label>
-        <label>Comprimento (cm) <input id="comprimento" inputmode="decimal" required></label>
-        <label>Largura (cm) <input id="largura" inputmode="decimal" required></label>
-        <label>Altura (cm) <input id="altura" inputmode="decimal" required></label>
+        <div class="dimensoes">
+          <span class="rotulo-grupo">Dimensões (cm)</span>
+          <div class="trio">
+            <label>Comprimento <input id="comprimento" inputmode="decimal" required></label>
+            <label>Largura <input id="largura" inputmode="decimal" required></label>
+            <label>Altura <input id="altura" inputmode="decimal" required></label>
+          </div>
+        </div>
       </div>
       <button type="submit" id="btn-cotar">Cotar</button>
       <p class="msg erro" id="msg-cotar" data-aviso></p>
@@ -918,11 +926,29 @@ export const PAGINA_HTML = `<!doctype html>
     });
   });
 
+  // Medidas do pacote lembradas no navegador entre cotações. O valor declarado não é lembrado, porque muda a cada nota.
+  var CAMPOS_DIMENSOES = ["peso", "comprimento", "largura", "altura"];
+  function lembrarDimensoes() {
+    try {
+      var d = {};
+      CAMPOS_DIMENSOES.forEach(function (id) { d[id] = $(id).value; });
+      localStorage.setItem("cliqueFrete.dimensoes", JSON.stringify(d));
+    } catch (e) { /* sem armazenamento no navegador: segue sem lembrar */ }
+  }
+  function restaurarDimensoes() {
+    try {
+      var d = JSON.parse(localStorage.getItem("cliqueFrete.dimensoes") || "null");
+      if (!d) return;
+      CAMPOS_DIMENSOES.forEach(function (id) { if (typeof d[id] === "string") $(id).value = d[id]; });
+    } catch (e) { /* dados inválidos: ignora */ }
+  }
+
   // Zera os campos preenchidos e a cotação anterior. O CEP de origem vem do cadastro e é mantido.
   function zerarDados() {
     ["cepDestino", "peso", "valor", "comprimento", "largura", "altura"].forEach(function (id) { $(id).value = ""; });
     $("dicaDestino").className = "dica";
     $("dicaDestino").textContent = "";
+    restaurarDimensoes();
     dadosNfe = null;
     atualizarDce();
     $("cepDestino").value = $("dce-cep").value.trim();
@@ -1093,6 +1119,8 @@ export const PAGINA_HTML = `<!doctype html>
     buscarCepDce();
   });
 
+  CAMPOS_DIMENSOES.forEach(function (id) { $(id).addEventListener("change", lembrarDimensoes); });
+  restaurarDimensoes();
   criarItem();
   iniciar();
 })();
