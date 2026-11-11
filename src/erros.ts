@@ -26,3 +26,24 @@ export function recusaCarrinho(nome: string, status: number, corpo: string): str
   if (status >= 500) return "A " + nome + " está indisponível agora. Tente de novo.";
   return "A " + nome + " não aceitou o pedido. Tente de novo.";
 }
+
+// Mensagens de recusa que a Envia devolve em inglês. O texto original vai para o log; o cliente vê a tradução.
+export function traduzirRecusaEnvia(mensagem: string): string {
+  console.log("[envia] recusa original: " + mensagem.slice(0, 500));
+  const m = mensagem.toLowerCase();
+  if (/not enough money|insufficient (balance|funds|money)|no balance|saldo/.test(m)) {
+    return "Saldo insuficiente na Envia para comprar esta etiqueta. Adicione saldo na sua conta Envia e tente de novo.";
+  }
+  if (/invalid token|unauthori[sz]ed|unauthenticated|token/.test(m)) return ajustarToken("Envia");
+  if (/zip ?code|postal code|cep|address|endere/.test(m)) {
+    return "A Envia não encontrou um dos endereços. Confira o CEP e o endereço do destinatário e da origem.";
+  }
+  if (/agency|agência|agencia/.test(m)) {
+    return "A agência de coleta escolhida não vale para esta rota. Escolha outra em Meus dados.";
+  }
+  if (/weight|peso|dimension|dimens|volume/.test(m)) {
+    return "A Envia não aceita o peso ou as medidas informados para este serviço. Confira os valores e tente de novo.";
+  }
+  if (/value|valor|declared/.test(m)) return "A Envia não aceita o valor declarado informado. Confira o valor e tente de novo.";
+  return "A Envia não aceitou o pedido. Confira os dados e tente de novo.";
+}
