@@ -1,7 +1,5 @@
 // Termos de uso e política de privacidade. Páginas estáticas, sem dependências externas.
 const DATA = "1º de novembro de 2026";
-const EMPRESA = "MRP Sistemas";
-const CNPJ = "27.390.826/0002-41";
 const EMAIL = "contato@cliquefrete.com.br";
 
 const ESTILO = `
@@ -40,7 +38,7 @@ function pagina(titulo: string, corpo: string): string {
   ${corpo}
   </div>
   <footer class="suave">
-    ${EMPRESA} · CNPJ ${CNPJ} · <a href="mailto:${EMAIL}">${EMAIL}</a><br>
+    <a href="mailto:${EMAIL}">${EMAIL}</a><br>
     <a href="/termos">Termos de uso</a> · <a href="/privacidade">Política de privacidade</a>
   </footer>
 </main>
@@ -50,7 +48,7 @@ function pagina(titulo: string, corpo: string): string {
 
 const TERMOS_CORPO = `
 <h2>1. Quem somos e o que é o serviço</h2>
-<p>O Clique Frete é operado pela ${EMPRESA}, inscrita no CNPJ ${CNPJ}. O serviço permite comparar cotações de frete das transportadoras SuperFrete, Frenet e Melhor Envio, e enviar pedidos ao carrinho dessas transportadoras a partir de uma nota fiscal.</p>
+<p>O Clique Frete é um serviço que permite comparar cotações de frete das transportadoras SuperFrete, Frenet e Melhor Envio, e enviar pedidos ao carrinho dessas transportadoras a partir de uma nota fiscal.</p>
 
 <h2>2. Cadastro e acesso</h2>
 <p>O acesso é feito por código de uso único enviado ao e-mail informado. Você é responsável pelo sigilo do seu e-mail e pelo uso da sua conta. Avise-nos imediatamente se suspeitar de acesso indevido.</p>
@@ -83,7 +81,7 @@ const TERMOS_CORPO = `
 <p>Podemos alterar estes termos. Quando a mudança for relevante, avisaremos pelo e-mail cadastrado ou pelo próprio serviço. O uso continuado após o aviso significa que você concorda com a nova versão.</p>
 
 <h2>10. Foro</h2>
-<p>Estes termos são regidos pela legislação brasileira. Quando você for consumidor, vale o foro do seu domicílio, nos termos do Código de Defesa do Consumidor. Nos demais casos, fica eleito o foro da sede da ${EMPRESA}.</p>
+<p>Estes termos são regidos pela legislação brasileira. Quando você for consumidor, vale o foro do seu domicílio, nos termos do Código de Defesa do Consumidor. Nos demais casos, fica eleito o foro da sede do Clique Frete.</p>
 
 <h2>11. Contato</h2>
 <p>Dúvidas sobre estes termos: <a href="mailto:${EMAIL}">${EMAIL}</a>.</p>
@@ -93,7 +91,7 @@ const PRIVACIDADE_CORPO = `
 <p>Esta política explica quais dados pessoais coletamos no Clique Frete, para que usamos e quais são seus direitos, conforme a Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018).</p>
 
 <h2>1. Quem é o responsável</h2>
-<p>O controlador dos dados é a ${EMPRESA}, CNPJ ${CNPJ}. Para falar sobre privacidade, use o e-mail <a href="mailto:${EMAIL}">${EMAIL}</a>.</p>
+<p>Os dados são tratados pelo Clique Frete. Para falar sobre privacidade, use o e-mail <a href="mailto:${EMAIL}">${EMAIL}</a>.</p>
 
 <h2>2. Dados que coletamos</h2>
 <ul>
