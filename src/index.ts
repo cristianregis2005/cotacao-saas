@@ -5,6 +5,7 @@ import { cotacaoRotas } from "./cotacoes/rotas";
 import { adminRotas } from "./admin/rotas";
 import { contaRotas } from "./contas/rotas";
 import { carrinhoRotas } from "./carrinho/rotas";
+import { pagamentoRotas } from "./pagamentos/rotas";
 import { CONTA_HTML } from "./web/conta";
 import { PAGINA_HTML } from "./web/pagina";
 import { ADMIN_HTML } from "./web/admin";
@@ -38,6 +39,9 @@ app.route("/api/conta", contaRotas);
 
 // Envio ao carrinho das transportadoras (exige login): /api/carrinho/ler-nfe, /api/carrinho/enviar
 app.route("/api/carrinho", carrinhoRotas);
+
+// Pagamento do acesso de 30 dias pelo Asaas (exige login): /api/pagamentos/assinar
+app.route("/api/pagamentos", pagamentoRotas);
 
 // Administração (exige administrador): /api/admin/usuarios, /api/admin/planos
 app.route("/api/admin", adminRotas);
