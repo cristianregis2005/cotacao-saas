@@ -4,7 +4,7 @@ import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
 import type { EntradaFrete } from "../carriers/tipos";
 import { lerCredenciais } from "../contas/tokens";
-import { registrarCotacao, verificarAcesso } from "../planos";
+import { MENSAGEM_DOCUMENTO_PENDENTE, documentoPendente, registrarCotacao, verificarAcesso } from "../planos";
 import { cotarTodas, type ExtrasCotacao } from "./todas";
 import { baseEnvia, type EnderecoEnvia } from "../carriers/envia";
 import { chaveTransportadora } from "../transportadoras/chaves";
@@ -95,6 +95,9 @@ cotacaoRotas.post("/todas", async (c) => {
     return c.json({ erro: "Cadastre pelo menos um token em Minha conta para cotar." }, 400);
   }
 
+  if (!usuario.is_admin && (await documentoPendente(c.env.DB, usuario.id))) {
+    return c.json({ erro: MENSAGEM_DOCUMENTO_PENDENTE }, 403);
+  }
   const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id, !!usuario.is_admin);
   if (acesso.motivo === "plano_inexistente") {
     return c.json({ erro: "Seu plano não está disponível. Fale com o suporte." }, 403);

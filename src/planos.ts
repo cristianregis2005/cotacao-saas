@@ -63,3 +63,15 @@ export async function registrarCotacao(db: D1Database, usuarioId: string): Promi
     .bind(crypto.randomUUID(), usuarioId)
     .run();
 }
+
+// Cadastro completo: sem CPF/CNPJ salvo, a conta não cota nem envia até informá-lo em Minha conta.
+// Administrador fica de fora. Quem chama confere e responde 403 com a mensagem abaixo.
+export const MENSAGEM_DOCUMENTO_PENDENTE = "Informe seu CPF ou CNPJ em Minha conta para continuar.";
+
+export async function documentoPendente(db: D1Database, usuarioId: string): Promise<boolean> {
+  const linha = await db
+    .prepare("SELECT documento FROM usuarios WHERE id = ?")
+    .bind(usuarioId)
+    .first<{ documento: string | null }>();
+  return !(linha?.documento && linha.documento.trim());
+}

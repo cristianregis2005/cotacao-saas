@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasDoPlano, verificarAcesso } from "../src/planos";
+import { diasDoPlano, documentoPendente, verificarAcesso } from "../src/planos";
 
 // Banco de mentira: responde se o plano existe e a situação de acesso do usuário.
 function dbFalso(opcoes: { planoExiste?: boolean; acesso_ate?: string | null; ativo?: number | null }) {
@@ -48,5 +48,22 @@ describe("verificarAcesso", () => {
   it("bloqueia plano que não existe no banco", async () => {
     const r = await verificarAcesso(dbFalso({ planoExiste: false, ativo: 1 }), "u1", "fantasma");
     expect(r.motivo).toBe("plano_inexistente");
+  });
+});
+
+describe("documentoPendente", () => {
+  // Banco de mentira: devolve o documento salvo (ou null) da conta.
+  const dbDocumento = (documento: string | null) =>
+    ({
+      prepare: () => ({ bind: () => ({ first: async () => ({ documento }) }) }),
+    }) as unknown as D1Database;
+
+  it("pendente quando não há CPF/CNPJ salvo ou está em branco", async () => {
+    expect(await documentoPendente(dbDocumento(null), "u1")).toBe(true);
+    expect(await documentoPendente(dbDocumento("   "), "u1")).toBe(true);
+  });
+
+  it("não pendente quando o CPF/CNPJ está salvo", async () => {
+    expect(await documentoPendente(dbDocumento("12345678909"), "u1")).toBe(false);
   });
 });

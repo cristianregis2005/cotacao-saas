@@ -103,7 +103,13 @@ function criarUsuario(
   if (plano && !db.prepare("SELECT 1 FROM planos WHERE id = ?").get(plano)) {
     db.exec("PRAGMA foreign_keys = OFF");
   }
-  db.prepare("INSERT INTO usuarios (id, email, plano_id, acesso_ate) VALUES (?, ?, ?, ?)").run(id, email, plano, acessoAte);
+  // CPF/CNPJ salvo: sem ele a conta fica bloqueada para cotar e enviar (regra do cadastro).
+  db.prepare("INSERT INTO usuarios (id, email, plano_id, acesso_ate, documento) VALUES (?, ?, ?, ?, '12345678909')").run(
+    id,
+    email,
+    plano,
+    acessoAte,
+  );
 }
 
 // Cria uma sessão real no banco e devolve o cookie no formato que a rota lê.
