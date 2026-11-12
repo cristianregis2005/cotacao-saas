@@ -2,7 +2,7 @@
 import { Hono, type Context } from "hono";
 import type { Env } from "../env";
 import { usuarioDaSessao } from "../auth/rotas";
-import { verificarAcesso } from "../planos";
+import { MENSAGEM_DOCUMENTO_PENDENTE, documentoPendente, verificarAcesso } from "../planos";
 import { lerCredenciais, NOMES, type Transportadora } from "../contas/tokens";
 import { lerNfe, type DadosNfe, type ItemNota, type Pessoa } from "./nfe";
 import {
@@ -360,6 +360,9 @@ carrinhoRotas.post("/ler-nfe", async (c) => {
 carrinhoRotas.post("/enviar", async (c) => {
   const usuario = await usuarioDaSessao(c);
   if (!usuario) return c.json({ erro: "Faça login para continuar." }, 401);
+  if (!usuario.is_admin && (await documentoPendente(c.env.DB, usuario.id))) {
+    return c.json({ erro: MENSAGEM_DOCUMENTO_PENDENTE }, 403);
+  }
   const acesso = await verificarAcesso(c.env.DB, usuario.id, usuario.plano_id, !!usuario.is_admin);
   if (!acesso.permitido) {
     const erro =
