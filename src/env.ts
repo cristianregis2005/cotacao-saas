@@ -23,6 +23,7 @@ export interface Env {
   FRENET_PARTNER_TOKEN?: string; // token de parceiro da Frenet, único para o sistema (segredo); exigido para enviar ao carrinho
   ENVIA_AMBIENTE?: string;  // "teste" usa a sandbox da Envia (api-test); qualquer outro valor usa a API real
   ASAAS_API_KEY?: string;   // chave de API do Asaas (segredo); sandbox ou produção
+  ASAAS_WEBHOOK_TOKEN?: string; // token que o Asaas envia no cabeçalho asaas-access-token (segredo)
   ASAAS_AMBIENTE?: string;  // "producao" usa a API real do Asaas; qualquer outro valor usa a sandbox
   EMAIL_SIMULADO?: string;   // "1" só em desenvolvimento: mostra o código no terminal, sem e-mail
 }
