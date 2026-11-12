@@ -25,7 +25,7 @@ export async function chamarAsaas(
   if (!env.ASAAS_API_KEY) throw new Error("Asaas não configurado: falta ASAAS_API_KEY.");
   const resp = await fetch(baseAsaas(env.ASAAS_AMBIENTE) + caminho, {
     method: metodo,
-    headers: { "Content-Type": "application/json", access_token: env.ASAAS_API_KEY },
+    headers: { "Content-Type": "application/json", "User-Agent": "CliqueFrete/1.0", access_token: env.ASAAS_API_KEY },
     body: corpo ? JSON.stringify(corpo) : undefined,
   });
   const dados = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
