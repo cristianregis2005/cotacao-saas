@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simule quanto você pode economizar no frete | Clique Frete</title>
+  <meta name="description" content="Informe o CEP de destino e o peso e as medidas do pacote e veja as opções mais baratas de frete, com SuperFrete, Melhor Envio e Frenet.">
+  <link rel="canonical" href="https://www.cliquefrete.com.br/simular-economia/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#f7f9fc">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/home.css">
+  <style>
+    .simulador { display: grid; gap: 14px; max-width: 640px; }
+    .simulador label { display: grid; gap: 6px; font-weight: 600; }
+    .simulador input[type="text"], .simulador input[type="number"], .simulador input[type="email"] { padding: 12px; border: 1px solid #c9d2e0; border-radius: 10px; font: inherit; }
+    .simulador .linha-medidas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 600px) { .simulador .linha-medidas { grid-template-columns: repeat(2, 1fr); } }
+    .simulador .consentimento { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+    .simulador .ajuda { font-size: .85rem; color: #5b6578; font-weight: 400; }
+    .resultado-lista { display: grid; gap: 12px; margin-top: 20px; }
+    .resultado-item { display: flex; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid #dfe5ef; border-radius: 14px; background: #fff; }
+    .resultado-item.melhor { border-color: #1f8f4e; box-shadow: 0 0 0 2px rgba(31,143,78,.15); }
+    .resultado-preco { font-size: 1.2rem; font-weight: 700; white-space: nowrap; }
+    .destaque-economia { margin-top: 16px; padding: 14px; border-radius: 12px; background: #eaf7ef; color: #14532d; font-weight: 600; }
+    .msg-erro { color: var(--erro, #b42318); font-weight: 600; }
+  </style>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+  <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo">
+    <div class="container topo-inner">
+      <a class="marca" href="/" aria-label="Clique Frete - página inicial">
+        <img class="logo" src="/assets/logo.png" alt="Clique Frete">
+      </a>
+      <nav class="nav-principal" id="nav-principal" aria-label="Navegação principal">
+        <a href="/como-funciona">Como funciona</a>
+        <a href="/comparar-frete/">Comparar fretes</a>
+        <a href="/faq">Dúvidas</a>
+        <a href="/noticias/">Conteúdos</a>
+      </nav>
+      <a class="botao botao-nav" href="https://app.cliquefrete.com.br/">Acessar aplicativo <span aria-hidden="true">↗</span></a>
+      <button class="menu-botao" type="button" aria-expanded="false" aria-controls="nav-principal" aria-label="Abrir menu"><span class="menu-icone" aria-hidden="true"></span></button>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <section class="secao">
+      <div class="container">
+        <h1>Simule quanto você pode economizar no frete</h1>
+        <p class="lead">Informe o CEP de destino e o pacote. Mostramos as 5 opções mais baratas de frete. Se quiser, informe quanto você paga hoje e veja a diferença.</p>
+
+        <form class="simulador" id="form-simulador" novalidate>
+          <label>CEP de destino
+            <input type="text" name="cepDestino" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" required>
+          </label>
+
+          <div>
+            <p style="margin:0 0 6px;font-weight:600">Pacote</p>
+            <div class="linha-medidas">
+              <label>Peso (kg)
+                <input type="number" name="peso" step="0.01" min="0.01" required>
+              </label>
+              <label>Comprimento (cm)
+                <input type="number" name="comprimento" step="1" min="1" required>
+              </label>
+              <label>Largura (cm)
+                <input type="number" name="largura" step="1" min="1" required>
+              </label>
+              <label>Altura (cm)
+                <input type="number" name="altura" step="1" min="1" required>
+              </label>
+            </div>
+          </div>
+
+          <label>Quanto você paga hoje por esse envio? (opcional)
+            <input type="number" name="valorPagoHoje" step="0.01" min="0.01" placeholder="R$ 0,00">
+            <span class="ajuda">Se preencher, mostramos quanto você pode economizar.</span>
+          </label>
+
+          <label>E-mail para receber novidades (opcional)
+            <input type="email" name="email" autocomplete="email" placeholder="voce@exemplo.com">
+          </label>
+          <label class="consentimento">
+            <input type="checkbox" name="consentimento">
+            <span>Aceito que a Clique Frete guarde meu e-mail para falar sobre o serviço. Posso pedir a exclusão a qualquer momento. Veja a <a href="https://app.cliquefrete.com.br/privacidade">política de privacidade</a>.</span>
+          </label>
+
+          <div class="cf-turnstile" data-sitekey="SUA_CHAVE_DO_TURNSTILE" data-theme="light"></div>
+
+          <button class="botao botao-grande" type="submit" id="btn-simular">Simular frete</button>
+          <p class="msg-erro" id="msg-simulador" role="alert"></p>
+        </form>
+
+        <div id="resultado" hidden>
+          <h2>Opções mais baratas</h2>
+          <div class="resultado-lista" id="lista-resultado"></div>
+          <div class="destaque-economia" id="economia" hidden></div>
+          <p class="ajuda">Valores estimados com base na cotação do momento. Podem mudar até a contratação.</p>
+          <p><a class="botao botao-grande" href="https://app.cliquefrete.com.br/">Cotar e enviar no aplicativo →</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container rodape-grid">
+      <div class="rodape-marca">
+        <a class="marca marca-rodape" href="/"><img class="logo" src="/assets/logo.png" alt="Clique Frete"></a>
+        <p>Compare opções de envio, avalie preços e prazos e escolha com mais praticidade.</p>
+      </div>
+      <div><h2>Conheça</h2><ul><li><a href="/como-funciona">Como funciona</a></li><li><a href="/faq">Perguntas frequentes</a></li><li><a href="/noticias/">Conteúdos</a></li><li><a href="/contato">Contato</a></li></ul></div>
+      <div><h2>Acesse</h2><ul><li><a href="https://app.cliquefrete.com.br/">Aplicativo</a></li><li><a href="https://app.cliquefrete.com.br/termos">Termos de uso</a></li><li><a href="https://app.cliquefrete.com.br/privacidade">Privacidade</a></li></ul></div>
+      <div><h2>Contato</h2><ul><li><a href="/contato">Fale com a gente</a></li></ul></div>
+    </div>
+    <div class="container rodape-base"><p>©<span id="ano-atual">2026</span> Clique Frete. Todos os direitos reservados.</p></div>
+  </footer>
+
+<script>
+  // Endereço do app. Se app.cliquefrete.com.br ainda não estiver ligado ao Worker, troque pelo endereço workers.dev.
+  // Teste local: use "http://localhost:8790/api/simulador/cotacao" e inclua http://localhost:8787 em ORIGENS_EXTRAS (.dev.vars).
+  var API_SIMULADOR = "https://app.cliquefrete.com.br/api/simulador/cotacao";
+  var form = document.getElementById("form-simulador");
+  var msg = document.getElementById("msg-simulador");
+  var btn = document.getElementById("btn-simular");
+
+  function dinheiro(v) {
+    return "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function texto(el, t) { el.textContent = t; }
+
+  function mostrar(dados) {
+    var lista = document.getElementById("lista-resultado");
+    lista.textContent = "";
+    dados.opcoes.forEach(function (o, i) {
+      var item = document.createElement("div");
+      item.className = "resultado-item" + (i === 0 ? " melhor" : "");
+      var info = document.createElement("div");
+      var nome = document.createElement("strong");
+      nome.textContent = o.transportadora;
+      var detalhe = document.createElement("div");
+      detalhe.className = "ajuda";
+      detalhe.textContent = [o.plataforma, o.servico, o.prazoTexto || (o.prazoDias ? o.prazoDias + " dia(s)" : "")].filter(Boolean).join(" · ");
+      info.appendChild(nome);
+      info.appendChild(detalhe);
+      var preco = document.createElement("div");
+      preco.className = "resultado-preco";
+      preco.textContent = dinheiro(o.preco);
+      item.appendChild(info);
+      item.appendChild(preco);
+      lista.appendChild(item);
+    });
+    var econ = document.getElementById("economia");
+    if (dados.economia) {
+      texto(econ, "Você pode economizar cerca de " + dinheiro(dados.economia) + " por envio em relação ao que paga hoje.");
+      econ.hidden = false;
+    } else if (dados.referencia) {
+      texto(econ, "Nesta simulação, a opção mais barata não fica abaixo do valor que você paga hoje.");
+      econ.hidden = false;
+    } else {
+      econ.hidden = true;
+    }
+    document.getElementById("resultado").hidden = false;
+    document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    texto(msg, "");
+    var f = new FormData(form);
+    var cep = String(f.get("cepDestino") || "").replace(/\D/g, "");
+    var email = String(f.get("email") || "").trim();
+    var consentimento = f.get("consentimento") === "on";
+    if (cep.length !== 8) return texto(msg, "Informe um CEP com 8 números.");
+    if (email && !consentimento) return texto(msg, "Para guardar seu e-mail, marque o aceite da política de privacidade.");
+    var token = f.get("cf-turnstile-response");
+    if (!token) return texto(msg, "Confirme que você não é um robô.");
+
+    var corpo = {
+      cepDestino: cep,
+      peso: Number(f.get("peso")),
+      comprimento: Number(f.get("comprimento")),
+      largura: Number(f.get("largura")),
+      altura: Number(f.get("altura")),
+      valorPagoHoje: f.get("valorPagoHoje") ? Number(f.get("valorPagoHoje")) : undefined,
+      email: email || undefined,
+      consentimento: consentimento,
+      turnstile: token
+    };
+    btn.disabled = true;
+    fetch(API_SIMULADOR, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo)
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (dados) {
+        if (!r.ok) throw new Error(dados.erro || "Não conseguimos simular agora.");
+        mostrar(dados);
+      });
+    }).catch(function (erro) {
+      texto(msg, erro.message || "Sem conexão. Tente de novo.");
+    }).finally(function () {
+      btn.disabled = false;
+      if (window.turnstile) window.turnstile.reset();
+    });
+  });
+</script>
+</body>
+</html>

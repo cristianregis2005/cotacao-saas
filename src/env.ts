@@ -26,4 +26,7 @@ export interface Env {
   ASAAS_WEBHOOK_TOKEN?: string; // token que o Asaas envia no cabeçalho asaas-access-token (segredo)
   ASAAS_AMBIENTE?: string;  // "producao" usa a API real do Asaas; qualquer outro valor usa a sandbox
   EMAIL_SIMULADO?: string;   // "1" só em desenvolvimento: mostra o código no terminal, sem e-mail
+  ORIGENS_EXTRAS?: string;   // origens extras liberadas no simulador (ex.: http://localhost:8787), só para desenvolvimento
+  DEMO_USUARIO_ID?: string;   // id do administrador cujos tokens são usados no simulador público (segredo ou variável)
+  TURNSTILE_SECRET_KEY?: string; // segredo do Cloudflare Turnstile, usado para confirmar que quem simula é uma pessoa (segredo)
 }
