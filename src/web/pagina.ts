@@ -353,17 +353,29 @@ export const PAGINA_HTML = `<!doctype html>
     return p("day") + "/" + p("month") + "/" + p("year") + " às " + p("hour") + ":" + p("minute");
   }
 
+  // Aviso de vencimento: em vermelho quando faltam 7 dias ou menos, ou quando o acesso já acabou.
+  function avaliarAcesso(uso) {
+    if (uso.ativo && uso.acesso_ate) {
+      var faltam = new Date(uso.acesso_ate.replace(" ", "T") + "Z").getTime() - Date.now();
+      var alerta = faltam <= 7 * 86400000;
+      return { texto: "Seu acesso vai até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)." + (alerta ? " Efetue o pagamento para obter mais 30 dias de acesso!" : ""), alerta: alerta };
+    }
+    if (uso.motivo === "administrador") return { texto: "Conta de administrador: acesso sem prazo.", alerta: false };
+    if (uso.motivo === "sem_franquia") return { texto: "Seu acesso gratuito já foi usado. Escolha um plano para continuar.", alerta: true };
+    return { texto: "Seu acesso terminou. Efetue o pagamento para obter mais 30 dias de acesso!", alerta: true };
+  }
+
   function mostrarUso(uso) {
     if (!uso) return;
-    if (uso.ativo && uso.acesso_ate) {
-      texto($("uso"), "Acesso ativo até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)");
-    } else if (uso.motivo === "administrador") {
-      texto($("uso"), "Conta de administrador: acesso sem prazo.");
-    } else if (uso.motivo === "sem_franquia") {
-      texto($("uso"), "Seu acesso gratuito já foi usado. Escolha um plano para continuar.");
-    } else {
-      texto($("uso"), "Seu período de acesso terminou. Escolha um plano para continuar.");
-    }
+    var a = avaliarAcesso(uso);
+    texto($("uso"), a.texto);
+    // A mesma linha aparece abaixo do e-mail (cartão do topo) e no menu: em vermelho quando for o caso.
+    ["uso", "uso-d"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.style.color = a.alerta ? "var(--erro)" : "";
+      el.style.fontWeight = a.alerta ? "600" : "";
+    });
   }
 
   function entrarNaTela(usuario, uso) {
