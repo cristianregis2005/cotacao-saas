@@ -83,6 +83,7 @@ export const CONTA_HTML = `<!doctype html>
     <a class="botao secundario" href="/">Voltar para as cotações</a>
   </section>
   <p class="msg erro" id="msg-acesso" hidden></p>
+  <div id="assinatura"></div>
   <div id="dados"></div>
   <div id="cartoes"></div>
   <div id="agencias"></div>
@@ -134,8 +135,27 @@ export const CONTA_HTML = `<!doctype html>
     var p = function (t) { var x = partes.find(function (y) { return y.type === t; }); return x ? x.value : ""; };
     return p("day") + "/" + p("month") + "/" + p("year") + " às " + p("hour") + ":" + p("minute");
   }
+  // Aviso de vencimento: em vermelho quando faltam 7 dias ou menos, ou quando o acesso já acabou.
+  function avaliarAcesso(uso) {
+    if (uso.ativo && uso.acesso_ate) {
+      var faltam = new Date(uso.acesso_ate.replace(" ", "T") + "Z").getTime() - Date.now();
+      var alerta = faltam <= 7 * 86400000;
+      return { texto: "Seu acesso vai até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)." + (alerta ? " Efetue o pagamento para obter mais 30 dias de acesso!" : ""), alerta: alerta };
+    }
+    if (uso.motivo === "administrador") return { texto: "Conta de administrador: acesso sem prazo.", alerta: false };
+    if (uso.motivo === "sem_franquia") return { texto: "Seu acesso gratuito já foi usado. Escolha um plano para continuar.", alerta: true };
+    return { texto: "Seu acesso terminou. Efetue o pagamento para obter mais 30 dias de acesso!", alerta: true };
+  }
+
   function mostrarUso(uso) {
     if (!uso) return;
+    var resumo = $("assinatura-status");
+    if (resumo) {
+      var a = avaliarAcesso(uso);
+      resumo.textContent = a.texto;
+      resumo.style.color = a.alerta ? "var(--erro)" : "";
+      resumo.style.fontWeight = a.alerta ? "600" : "";
+    }
     if (uso.ativo && uso.acesso_ate) {
       $("uso").textContent = "Acesso ativo até " + formatarAcesso(uso.acesso_ate) + " (horário de Brasília)";
     } else if (uso.motivo === "administrador") {
@@ -514,6 +534,38 @@ export const CONTA_HTML = `<!doctype html>
     return cartao;
   }
 
+  // Cartão de acesso: gera a cobrança de 30 dias e leva a pessoa para a página de pagamento do Asaas.
+  function montarAssinatura() {
+    var cartao = document.createElement("section");
+    cartao.className = "cartao";
+    var titulo = document.createElement("h2");
+    titulo.textContent = "Controle de Acesso";
+    var resumo = document.createElement("p");
+    resumo.id = "assinatura-status";
+    resumo.className = "suave";
+    var botao = document.createElement("button");
+    botao.type = "button";
+    botao.textContent = "Pagar R$ 19,90";
+    var msg = document.createElement("p");
+    msg.className = "msg";
+    botao.addEventListener("click", function () {
+      botao.disabled = true;
+      msg.className = "msg";
+      msg.textContent = "Gerando o pagamento...";
+      api("/api/pagamentos/assinar", {}, "POST").then(function (r) {
+        if (r.ok && r.dados.link) { location.href = r.dados.link; return; }
+        botao.disabled = false;
+        msg.className = "msg erro";
+        msg.textContent = r.dados.erro || "Não consegui gerar o pagamento agora.";
+      });
+    });
+    cartao.appendChild(titulo);
+    cartao.appendChild(resumo);
+    cartao.appendChild(botao);
+    cartao.appendChild(msg);
+    $("assinatura").appendChild(cartao);
+  }
+
   function carregarDados() {
     api("/api/conta/dados").then(function (r) {
       if (!r.ok) return;
@@ -560,6 +612,7 @@ export const CONTA_HTML = `<!doctype html>
   }
 
   carregar();
+  montarAssinatura();
   carregarDados();
   carregarAgencias();
   montarExcluir();
