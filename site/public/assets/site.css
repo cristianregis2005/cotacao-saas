@@ -139,6 +139,31 @@ footer.rodape ul { list-style: none; padding: 0; display: flex; gap: 16px; flex-
   padding: 12px 18px;
 }
 
+.botao-flutuante-icone {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  box-shadow: none;
+  border-radius: 50%;
+}
+.botao.botao-flutuante-icone,
+.botao.botao-flutuante-icone:hover { background: none; box-shadow: none; border: 0; }
+.botao-flutuante-icone img {
+  display: block;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  max-width: none;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.22));
+  transition: transform .15s ease;
+}
+.botao-flutuante-icone:hover img { transform: scale(1.06); }
+
 @media (max-width: 600px) {
   nav ul { gap: 10px; }
   section { padding: 28px 0; }
