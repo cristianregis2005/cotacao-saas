@@ -6,6 +6,7 @@ import { adminRotas } from "./admin/rotas";
 import { contaRotas } from "./contas/rotas";
 import { carrinhoRotas } from "./carrinho/rotas";
 import { pagamentoRotas } from "./pagamentos/rotas";
+import { simuladorRotas } from "./simulador/rotas";
 import { CONTA_HTML } from "./web/conta";
 import { PAGINA_HTML } from "./web/pagina";
 import { ADMIN_HTML } from "./web/admin";
@@ -42,6 +43,9 @@ app.route("/api/carrinho", carrinhoRotas);
 
 // Pagamento do acesso de 30 dias pelo Asaas (exige login): /api/pagamentos/assinar
 app.route("/api/pagamentos", pagamentoRotas);
+
+// Simulador público do site (sem login): /api/simulador/cotacao
+app.route("/api/simulador", simuladorRotas);
 
 // Administração (exige administrador): /api/admin/usuarios, /api/admin/planos
 app.route("/api/admin", adminRotas);
