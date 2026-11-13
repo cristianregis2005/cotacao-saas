@@ -34,6 +34,32 @@ export async function garantirClienteAsaas(
   return id;
 }
 
+// Cancela no Asaas as cobranças anteriores do mesmo usuário que ainda estão abertas.
+// Se o Asaas recusar (ex.: a cobrança já foi paga), a linha continua pendente e o webhook resolve.
+export async function cancelarCobrancasAbertas(
+  env: AmbienteAsaas,
+  db: D1Database,
+  usuarioId: string,
+): Promise<void> {
+  const abertas = await db
+    .prepare("SELECT id, asaas_cobranca_id FROM pagamentos WHERE usuario_id = ? AND status = 'pendente' AND asaas_cobranca_id IS NOT NULL")
+    .bind(usuarioId)
+    .all<{ id: string; asaas_cobranca_id: string }>();
+  for (const p of abertas.results ?? []) {
+    try {
+      const resp = await chamarAsaas(env, "DELETE", "/payments/" + p.asaas_cobranca_id);
+      if (resp.ok || resp.status === 404) {
+        await db
+          .prepare("UPDATE pagamentos SET status = 'cancelado' WHERE id = ? AND status = 'pendente'")
+          .bind(p.id)
+          .run();
+      }
+    } catch (erro) {
+      console.error("[asaas] falha ao cancelar cobrança anterior", p.id, erro instanceof Error ? erro.message : erro);
+    }
+  }
+}
+
 // Gera a cobrança de 30 dias. billingType UNDEFINED deixa a pessoa escolher Pix, cartão ou boleto na página do Asaas.
 export async function criarCobrancaAcesso(
   env: AmbienteAsaas,
@@ -41,6 +67,7 @@ export async function criarCobrancaAcesso(
   cliente: ClienteParaCobranca,
 ): Promise<{ link: string }> {
   const asaasId = await garantirClienteAsaas(env, db, cliente);
+  await cancelarCobrancasAbertas(env, db, cliente.id);
   const pagamentoId = crypto.randomUUID();
   await db
     .prepare("INSERT INTO pagamentos (id, usuario_id, valor, status) VALUES (?, ?, ?, 'pendente')")

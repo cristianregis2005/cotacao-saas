@@ -18,7 +18,7 @@ export function baseAsaas(ambiente?: string): string {
 
 export async function chamarAsaas(
   env: AmbienteAsaas,
-  metodo: "GET" | "POST",
+  metodo: "GET" | "POST" | "DELETE",
   caminho: string,
   corpo?: Record<string, unknown>,
 ): Promise<RespostaAsaas> {
