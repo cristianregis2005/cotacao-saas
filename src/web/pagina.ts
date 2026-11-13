@@ -408,6 +408,7 @@ export const PAGINA_HTML = `<!doctype html>
     api("/api/auth/codigo", { email: email }).then(function (r) {
       botao.disabled = false;
       if (!r.ok) { texto($("msg-entrar"), r.dados.erro || "Não consegui enviar o código."); return; }
+      $("codigo").value = "";
       $("form-codigo").hidden = false;
       $("codigo").focus();
     }).catch(function () {
