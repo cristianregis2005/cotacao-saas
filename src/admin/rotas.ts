@@ -297,3 +297,60 @@ adminRotas.delete("/usuarios/:id/tokens/:transportadora", async (c) => {
   await registrarAuditoria(c.env.DB, admin.id, id, "token_removido", transportadora);
   return c.json({ ok: true });
 });
+
+// Simulador público: estado, leads e simulações por dia (exige administrador).
+adminRotas.get("/simulador", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  if (!admin.is_admin) return c.json({ erro: "Acesso restrito ao administrador." }, 403);
+  const cfg = await c.env.DB.prepare("SELECT valor FROM configuracoes WHERE chave = 'simulador_ativo'").first<{ valor: string }>();
+  const { results: leads } = await c.env.DB.prepare(
+    "SELECT email, cep_destino, valor_pago_hoje, menor_preco, criado_em FROM leads ORDER BY criado_em DESC LIMIT 200",
+  ).all();
+  const total = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM leads").first<{ n: number }>();
+  const { results: porDia } = await c.env.DB.prepare(
+    "SELECT substr(janela, 1, 10) AS dia, SUM(contador) AS total FROM simulacoes_publicas_limite GROUP BY dia ORDER BY dia DESC LIMIT 30",
+  ).all<{ dia: string; total: number }>();
+  return c.json({ ativo: cfg ? cfg.valor === "1" : true, leads, totalLeads: total?.n ?? 0, simulacoesPorDia: porDia });
+});
+
+adminRotas.put("/simulador", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  if (!admin.is_admin) return c.json({ erro: "Acesso restrito ao administrador." }, 403);
+  const corpo = (await c.req.json<{ ativo?: unknown }>().catch(() => null)) ?? {};
+  if (typeof corpo.ativo !== "boolean") return c.json({ erro: "Informe ativo como verdadeiro ou falso." }, 400);
+  await c.env.DB.prepare(
+    "INSERT INTO configuracoes (chave, valor, atualizado_em) VALUES ('simulador_ativo', ?, datetime('now')) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor, atualizado_em = excluded.atualizado_em",
+  )
+    .bind(corpo.ativo ? "1" : "0")
+    .run();
+  await registrarAuditoria(c.env.DB, admin.id, null, corpo.ativo ? "simulador_ligado" : "simulador_desligado", "simulador");
+  return c.json({ ok: true });
+});
+
+// Exporta os leads em CSV (abre no Excel com acentos corretos por causa do BOM).
+adminRotas.get("/simulador/leads.csv", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  if (!admin.is_admin) return c.json({ erro: "Acesso restrito ao administrador." }, 403);
+  const { results } = await c.env.DB.prepare(
+    "SELECT email, cep_destino, valor_pago_hoje, menor_preco, criado_em FROM leads ORDER BY criado_em DESC",
+  ).all<Record<string, string | number | null>>();
+  const escapa = (v: string | number | null): string => {
+    if (v === null || v === undefined) return "";
+    const t = String(v);
+    return /[",\n;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const linhas = ["e-mail;cep_destino;valor_pago_hoje;menor_preco;criado_em"];
+  for (const r of results) {
+    linhas.push([r.email, r.cep_destino, r.valor_pago_hoje, r.menor_preco, r.criado_em].map(escapa).join(";"));
+  }
+  return new Response("﻿" + linhas.join("\n") + "\n", {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="leads-simulador.csv"',
+      "Cache-Control": "no-store",
+    },
+  });
+});

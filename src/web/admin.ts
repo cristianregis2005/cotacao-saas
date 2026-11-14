@@ -81,6 +81,7 @@ export const ADMIN_HTML = `<!doctype html>
   <a href="#usuarios" data-menu="usuarios">Usuários</a>
   <a href="#planos" data-menu="planos">Planos</a>
   <a href="#transportadoras" data-menu="transportadoras">Transportadoras</a>
+  <a href="#simulador" data-menu="simulador">Simulador</a>
   <a href="#historico" data-menu="registros">Registros</a>
   <div class="submenu" id="submenu-registros" hidden>
     <a href="#historico" data-menu="historico">Histórico</a>
@@ -138,6 +139,35 @@ export const ADMIN_HTML = `<!doctype html>
         <tbody id="linhas-transportadoras"></tbody>
       </table>
       <p class="msg" id="msg-transportadoras"></p>
+    </div>
+    </div>
+
+    <div data-painel="simulador">
+    <div class="cartao" id="secao-simulador">
+      <h2>Simulador do site</h2>
+      <p class="suave">Simulação pública de frete em /simular-economia/. Ela usa a conta do administrador para cotar.</p>
+      <div class="linha-interruptor">
+        <span>Simulador ligado</span>
+        <label class="interruptor">
+          <input type="checkbox" id="sim-ativo" role="switch" aria-label="Ligar ou desligar o simulador">
+          <span class="trilho" aria-hidden="true"></span>
+        </label>
+      </div>
+      <p class="msg" id="msg-simulador"></p>
+
+      <h3>Simulações por dia</h3>
+      <p class="suave">Pedidos válidos feitos no formulário, contados por dia (inclui os bloqueados pelo limite).</p>
+      <table>
+        <thead><tr><th>Dia</th><th>Simulações</th></tr></thead>
+        <tbody id="linhas-simulacoes"></tbody>
+      </table>
+
+      <h3>Leads</h3>
+      <p><a class="botao" href="/api/admin/simulador/leads.csv">Exportar leads (CSV)</a> <span class="suave" id="total-leads"></span></p>
+      <table>
+        <thead><tr><th>Data</th><th>E-mail</th><th>CEP destino</th><th>Pago hoje</th><th>Menor preço</th></tr></thead>
+        <tbody id="linhas-leads"></tbody>
+      </table>
     </div>
     </div>
 
@@ -831,7 +861,58 @@ export const ADMIN_HTML = `<!doctype html>
     $("msg-transportadoras").textContent = texto;
   }
 
-  var SECOES = ["usuarios", "planos", "transportadoras", "historico", "auditoria"];
+  var SECOES = ["usuarios", "planos", "transportadoras", "simulador", "historico", "auditoria"];
+
+  function reaisSimulador(v) {
+    return v === null || v === undefined ? "—" : "R$ " + Number(v).toFixed(2).replace(".", ",");
+  }
+
+  function mostrarMsgSimulador(texto, tipo) {
+    $("msg-simulador").className = "msg " + (tipo || "");
+    $("msg-simulador").textContent = texto;
+  }
+
+  function carregarSimulador() {
+    return api("/api/admin/simulador").then(function (r) {
+      if (!r.ok) { mostrarMsgSimulador(r.dados.erro || "Não consegui carregar o simulador.", "erro"); return; }
+      var d = r.dados;
+      $("sim-ativo").checked = !!d.ativo;
+      $("total-leads").textContent = d.totalLeads + " lead(s) no total";
+      var linhasDias = $("linhas-simulacoes");
+      linhasDias.textContent = "";
+      d.simulacoesPorDia.forEach(function (x) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(x.dia));
+        tr.appendChild(celula(String(x.total)));
+        linhasDias.appendChild(tr);
+      });
+      var linhasLeads = $("linhas-leads");
+      linhasLeads.textContent = "";
+      d.leads.forEach(function (l) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(l.criado_em));
+        tr.appendChild(celula(l.email));
+        tr.appendChild(celula(l.cep_destino));
+        tr.appendChild(celula(reaisSimulador(l.valor_pago_hoje)));
+        tr.appendChild(celula(reaisSimulador(l.menor_preco)));
+        linhasLeads.appendChild(tr);
+      });
+    });
+  }
+
+  $("sim-ativo").addEventListener("change", function () {
+    var novo = $("sim-ativo").checked;
+    $("sim-ativo").disabled = true;
+    api("/api/admin/simulador", { ativo: novo }, "PUT").then(function (r) {
+      $("sim-ativo").disabled = false;
+      if (!r.ok) {
+        $("sim-ativo").checked = !novo;
+        mostrarMsgSimulador(r.dados.erro || "Não consegui alterar.", "erro");
+        return;
+      }
+      mostrarMsgSimulador(novo ? "Simulador ligado." : "Simulador desligado.", "ok");
+    });
+  });
 
   function mostrarSecao(nome) {
     if (SECOES.indexOf(nome) < 0) nome = "usuarios";
@@ -861,6 +942,7 @@ export const ADMIN_HTML = `<!doctype html>
       desenharUsuarios(res[0].dados.usuarios);
       carregarHistorico();
       carregarTransportadoras();
+      carregarSimulador();
       carregarAuditoria();
     });
   }
