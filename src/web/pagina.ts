@@ -130,6 +130,7 @@ export const PAGINA_HTML = `<!doctype html>
   .opcao-preco { font-size: 1.25rem; font-weight: 700; text-align: right; white-space: nowrap; }
   .opcao-prazo { color: var(--suave); font-size: 0.9rem; text-align: right; white-space: nowrap; }
   .opcao > button { width: 100%; }
+  .logo-transportadora { height: 28px; width: auto; max-width: 120px; display: block; }
 </style>
 </head>
 <body>
@@ -499,7 +500,22 @@ export const PAGINA_HTML = `<!doctype html>
       var esquerda = document.createElement("div");
       var nome = document.createElement("div");
       nome.className = "opcao-nome";
-      nome.textContent = c.transportadora || "-";
+      var nomeBruto = String(c.transportadora || "").toLowerCase();
+      var arquivoLogo = nomeBruto.indexOf("correio") >= 0 ? "correios.png"
+        : nomeBruto.indexOf("optimus") >= 0 ? "optimus.png"
+        : nomeBruto.indexOf("jadlog") >= 0 ? "jadlog.png"
+        : (nomeBruto.indexOf("j&t") >= 0 || nomeBruto.indexOf("jet") >= 0) ? "jt.png"
+        : nomeBruto.indexOf("loggi") >= 0 ? "loggi.png"
+        : "";
+      if (arquivoLogo) {
+        var imgT = document.createElement("img");
+        imgT.src = "https://cliquefrete.com.br/assets/logos/transportadoras/" + arquivoLogo;
+        imgT.alt = c.transportadora || "";
+        imgT.className = "logo-transportadora";
+        nome.appendChild(imgT);
+      } else {
+        nome.textContent = c.transportadora || "-";
+      }
       var servico = document.createElement("div");
       servico.className = "opcao-servico";
       servico.textContent = c.origem + " · " + (c.servico || "-");
