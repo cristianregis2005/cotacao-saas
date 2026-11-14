@@ -125,6 +125,16 @@
   var form = document.getElementById("form-simulador");
   var msg = document.getElementById("msg-simulador");
   var btn = document.getElementById("btn-simular");
+  var textoBotao = btn.textContent;
+
+  // Estilo do spinner (fica aqui para não mexer no CSS do site)
+  var estilo = document.createElement("style");
+  estilo.textContent =
+    "@keyframes cf-girar{to{transform:rotate(360deg)}}" +
+    ".cf-spinner{display:inline-block;width:16px;height:16px;margin-right:8px;vertical-align:-3px;" +
+    "border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:cf-girar .7s linear infinite}" +
+    "#btn-simular[disabled]{opacity:.75;cursor:wait}";
+  document.head.appendChild(estilo);
 
   function dinheiro(v) {
     return "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -166,17 +176,36 @@
     document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // Liga ou desliga o estado de carregamento do botão (spinner + texto)
+  function emCarregamento(ativo) {
+    btn.disabled = ativo;
+    if (ativo) {
+      btn.textContent = "";
+      var giro = document.createElement("span");
+      giro.className = "cf-spinner";
+      giro.setAttribute("aria-hidden", "true");
+      btn.appendChild(giro);
+      btn.appendChild(document.createTextNode("Simulando..."));
+    } else {
+      btn.textContent = textoBotao;
+    }
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (btn.disabled) return;
     texto(msg, "");
     var f = new FormData(form);
     var cep = String(f.get("cepDestino") || "").replace(/\D/g, "");
     var email = String(f.get("email") || "").trim();
     var consentimento = f.get("consentimento") === "on";
-    if (cep.length !== 8) return texto(msg, "Informe um CEP com 8 números.");
-    if (email && !consentimento) return texto(msg, "Para guardar seu e-mail, marque o aceite da política de privacidade.");
+    if (cep.length !== 8) { texto(msg, "Informe um CEP com 8 números."); return; }
+    if (email && !consentimento) { texto(msg, "Para guardar seu e-mail, marque o aceite da política de privacidade."); return; }
     var token = f.get("cf-turnstile-response");
-    if (!token) return texto(msg, "Confirme que você não é um robô.");
+    if (!token) {
+      texto(msg, "Aguarde a verificação do formulário e tente de novo.");
+      return;
+    }
 
     var corpo = {
       cepDestino: cep,
@@ -189,7 +218,7 @@
       consentimento: consentimento,
       turnstile: token
     };
-    btn.disabled = true;
+    emCarregamento(true);
     fetch(API_SIMULADOR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -202,7 +231,8 @@
     }).catch(function (erro) {
       texto(msg, erro.message || "Sem conexão. Tente de novo.");
     }).finally(function () {
-      btn.disabled = false;
+      emCarregamento(false);
+      // O token é de uso único: gera um novo para a próxima simulação
       if (window.turnstile) window.turnstile.reset();
     });
   });
