@@ -115,8 +115,6 @@ const PRIVACIDADE_CORPO = `
 <h2>4. Com quem compartilhamos</h2>
 <ul>
   <li><strong>Transportadoras</strong> (SuperFrete, Frenet e Melhor Envio): recebem os dados necessários para cotar e criar o pedido, somente quando você faz essas ações.</li>
-  <li><strong>Cloudflare</strong>: hospeda o serviço e o banco de dados, e envia os e-mails de acesso.</li>
-  <li><strong>ViaCEP</strong>: recebe apenas o CEP consultado.</li>
 </ul>
 <p>Não vendemos dados pessoais.</p>
 
