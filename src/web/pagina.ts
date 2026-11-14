@@ -504,7 +504,7 @@ export const PAGINA_HTML = `<!doctype html>
       var arquivoLogo = nomeBruto.indexOf("correio") >= 0 ? "correios.png"
         : nomeBruto.indexOf("optimus") >= 0 ? "optimus.png"
         : nomeBruto.indexOf("jadlog") >= 0 ? "jadlog.png"
-        : (nomeBruto.indexOf("j&t") >= 0 || nomeBruto.indexOf("jet") >= 0) ? "jt.png"
+        : (nomeBruto.indexOf("j&t") >= 0 || nomeBruto.indexOf("jt") >= 0 || nomeBruto.indexOf("jet") >= 0) ? "jt.png"
         : nomeBruto.indexOf("loggi") >= 0 ? "loggi.png"
         : "";
       if (arquivoLogo) {
