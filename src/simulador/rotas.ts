@@ -159,6 +159,9 @@ simuladorRotas.options("/cotacao", (c) => {
 // Corpo: { cepDestino, peso (kg), comprimento, largura, altura (cm), valorPagoHoje?, email?, consentimento?, turnstile }
 simuladorRotas.post("/cotacao", async (c) => {
   cabecalhosCors(c);
+  const desligado = await c.env.DB.prepare("SELECT valor FROM configuracoes WHERE chave = 'simulador_ativo'").first<{ valor: string }>();
+  if (desligado && desligado.valor !== "1") return c.json({ erro: "Simulador indisponível no momento." }, 503);
+
   const corpo = (await c.req.json<Record<string, unknown>>().catch(() => null)) ?? {};
 
   const cepDestino = cep8(corpo.cepDestino);
