@@ -66,9 +66,12 @@ export const PAGINA_HTML = `<!doctype html>
   .etapas { display: flex; gap: 8px; margin: 0 0 16px; }
   .aviso-topo { position: sticky; top: 0; z-index: 10; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
   .fundo-menu, .folha-menu, .barra-inferior, .titulo-mobile { display: none; }
-  .cabecalho { display: flex; justify-content: flex-start; align-items: center; padding: 12px 0 16px; }
-  .logo-cabecalho { height: 48px; width: auto; display: block; mix-blend-mode: multiply; }
+  .cabecalho { display: flex; justify-content: flex-start; align-items: center; padding: 4px 0 0; }
+  .cabecalho-entrada + h1 { margin-top: 4px; }
+  .logo-cabecalho { height: 72px; width: auto; display: block; mix-blend-mode: multiply; }
   .cabecalho .icone-usuario { display: none; }
+  @media (min-width: 768px) { body:has(#cotar:not([hidden])) .cabecalho:not(.cabecalho-entrada) { display: none; } }
+  @media (max-width: 767px) { body:has(#cotar:not([hidden])) .cabecalho-entrada { display: none; } }
   @media (max-width: 767px) {
   .card-desktop { display: none; }
   .titulo-mobile { display: block; margin: 0 0 14px; font-size: 1.5rem; font-weight: 700; }
@@ -82,7 +85,7 @@ export const PAGINA_HTML = `<!doctype html>
   .barra-item.ativo { font-weight: 600; background: rgba(255,255,255,0.18); }
   .cabecalho { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 12px; }
   .cabecalho .icone-usuario { display: flex; }
-  .logo-cabecalho { height: 60px; width: auto; display: block; mix-blend-mode: multiply; }
+  .logo-cabecalho { height: 90px; width: auto; display: block; mix-blend-mode: multiply; }
   .icone-usuario { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: var(--destaque); color: #fff; }
   .icone-usuario svg { width: 20px; height: 20px; }
   .fundo-menu { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.45); }

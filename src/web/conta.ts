@@ -67,6 +67,11 @@ export const CONTA_HTML = `<!doctype html>
   .form-token .acoes button { padding: 10px 14px; }
   .dica-campo { font-size: 0.8rem; color: var(--suave); margin: -4px 0 12px; }
   [hidden] { display: none !important; }
+  .cabecalho { display: flex; justify-content: flex-start; align-items: center; padding: 4px 0 0; }
+  .logo-cabecalho { height: 72px; width: auto; display: block; mix-blend-mode: multiply; }
+  .cabecalho + h1 { margin-top: 4px; }
+  .cabecalho .icone-usuario { display: none; }
+  @media (max-width: 767px) { .logo-cabecalho { height: 90px; } .cabecalho .icone-usuario { display: flex; } }
 </style>
 </head>
 <body>
