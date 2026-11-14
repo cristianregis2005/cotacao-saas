@@ -27,6 +27,7 @@ function pagina(titulo: string, corpo: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${titulo} · Clique Frete</title>
+<link rel="icon" type="image/svg+xml" href="https://cliquefrete.com.br/assets/favicon.svg">
 <style>${ESTILO}</style>
 </head>
 <body>
