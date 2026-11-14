@@ -26,6 +26,7 @@ function pagina(corpo: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ajuda</title>
+<link rel="icon" type="image/svg+xml" href="https://cliquefrete.com.br/assets/favicon.svg">
 <style>
   :root { --fundo: #f6f7f9; --cartao: #ffffff; --texto: #1d2330; --suave: #5b6372; --borda: #d8dce3; --destaque: #2563eb; }
   @media (prefers-color-scheme: dark) {
