@@ -71,7 +71,7 @@ export const CONTA_HTML = `<!doctype html>
   .logo-cabecalho { height: 72px; width: auto; display: block; mix-blend-mode: multiply; }
   .cabecalho + h1 { margin-top: 4px; }
   .cabecalho .icone-usuario { display: none; }
-  @media (max-width: 767px) { .logo-cabecalho { height: 90px; } .cabecalho .icone-usuario { display: flex; } }
+  @media (max-width: 767px) { .logo-cabecalho { height: 90px; } .cabecalho { justify-content: space-between; } .cabecalho .icone-usuario { display: flex; } }
 </style>
 </head>
 <body>
