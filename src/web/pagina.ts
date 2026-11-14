@@ -535,7 +535,7 @@ export const PAGINA_HTML = `<!doctype html>
       cartao.appendChild(topo);
       var botaoCarrinho = document.createElement("button");
       botaoCarrinho.type = "button";
-      botaoCarrinho.textContent = c.origem === "Envia" ? "Comprar etiqueta" : "Enviar ao carrinho";
+      botaoCarrinho.textContent = c.origem === "Envia" ? "Gerar etiqueta" : "Enviar ao carrinho";
       botaoCarrinho.addEventListener("click", function () { enviarCarrinho(c, botaoCarrinho); });
       cartao.appendChild(botaoCarrinho);
       corpo.appendChild(cartao);
