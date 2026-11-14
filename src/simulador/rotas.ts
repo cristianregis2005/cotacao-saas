@@ -68,7 +68,6 @@ async function excedeuLimite(db: D1Database, chave: string): Promise<boolean> {
 
 export interface OpcaoPublica {
   transportadora: string;
-  plataforma: string;
   servico: string;
   preco: number;
   prazoDias: number | null;
@@ -135,7 +134,6 @@ async function obterOpcoes(env: Env, entrada: EntradaFrete & { cepDestino: strin
   );
   const opcoes: OpcaoPublica[] = resultado.cotacoes.slice(0, OPCOES_NA_RESPOSTA).map((c) => ({
     transportadora: c.transportadora ?? c.origem,
-    plataforma: c.origem,
     servico: c.servico ?? "",
     preco: c.preco,
     prazoDias: c.prazoDias ?? null,

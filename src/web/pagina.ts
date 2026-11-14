@@ -65,7 +65,10 @@ export const PAGINA_HTML = `<!doctype html>
   .etapa-oculta { display: none !important; }
   .etapas { display: flex; gap: 8px; margin: 0 0 16px; }
   .aviso-topo { position: sticky; top: 0; z-index: 10; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .cabecalho, .fundo-menu, .folha-menu, .barra-inferior, .titulo-mobile { display: none; }
+  .fundo-menu, .folha-menu, .barra-inferior, .titulo-mobile { display: none; }
+  .cabecalho { display: flex; justify-content: flex-start; align-items: center; padding: 12px 0 16px; }
+  .logo-cabecalho { height: 48px; width: auto; display: block; mix-blend-mode: multiply; }
+  .cabecalho .icone-usuario { display: none; }
   @media (max-width: 767px) {
   .card-desktop { display: none; }
   .titulo-mobile { display: block; margin: 0 0 14px; font-size: 1.5rem; font-weight: 700; }
@@ -78,6 +81,7 @@ export const PAGINA_HTML = `<!doctype html>
   .barra-item svg { width: 22px; height: 22px; }
   .barra-item.ativo { font-weight: 600; background: rgba(255,255,255,0.18); }
   .cabecalho { display: flex; justify-content: space-between; align-items: center; padding: 4px 0 12px; }
+  .cabecalho .icone-usuario { display: flex; }
   .logo-cabecalho { height: 60px; width: auto; display: block; mix-blend-mode: multiply; }
   .icone-usuario { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: var(--destaque); color: #fff; }
   .icone-usuario svg { width: 20px; height: 20px; }
@@ -127,10 +131,12 @@ export const PAGINA_HTML = `<!doctype html>
 </head>
 <body>
 <main>
+  <div class="cabecalho cabecalho-entrada"><img class="logo-cabecalho" src="https://cliquefrete.com.br/assets/logo.png" alt="Clique Frete"></div>
   <h1>Crie uma cotação</h1>
 
   <section id="entrar" class="cartao" hidden>
     <h2>Entrar</h2>
+    <p class="ajuda">Primeira vez aqui? Informe seu e-mail e enviaremos um código de 6 dígitos. Ao confirmar o código, sua conta é criada automaticamente.</p>
     <form id="form-email">
       <label>E-mail
         <input id="email" type="email" autocomplete="email" required>
@@ -138,7 +144,7 @@ export const PAGINA_HTML = `<!doctype html>
       <button type="submit" id="btn-codigo">Receber código</button>
     </form>
     <form id="form-codigo" hidden>
-      <p class="msg" id="msg-codigo">Enviamos um código para o seu e-mail.</p>
+      <p class="msg" id="msg-codigo">Enviamos um código de 6 dígitos para o seu e-mail. Se não aparecer, confira a caixa de spam.</p>
       <label>Código de 6 dígitos
         <input id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
       </label>
