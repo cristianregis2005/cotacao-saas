@@ -28,3 +28,6 @@ export function chaveTransportadora(origem: string, codigo?: string | number | n
   const parte = codigo !== undefined && codigo !== null && String(codigo) !== "" ? slug(String(codigo)) : slug(nome ?? "");
   return parte ? plataforma + ":" + parte : plataforma;
 }
+
+// Plataformas novas: começam desligadas até o administrador liberar no painel.
+export const PLATAFORMAS_NOVAS_DESLIGADAS: string[] = ["prontoenvios"];

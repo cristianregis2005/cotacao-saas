@@ -9,6 +9,7 @@ import { aplicarPlano } from "../planos";
 import { registrarAuditoria } from "./auditoria";
 import { validarDados } from "../contas/dados";
 import { garantirFranquiaUnica } from "../auth/identidade";
+import { PLATAFORMAS_NOVAS_DESLIGADAS } from "../transportadoras/chaves";
 
 export const adminRotas = new Hono<{ Bindings: Env }>();
 
@@ -142,7 +143,7 @@ adminRotas.get("/historico", async (c) => {
 
 // Transportadoras ligadas ou desligadas para a cotação de todos os clientes.
 // A lista vem das cotações já recebidas (tabela transportadoras_vistas). Plataformas aparecem sempre.
-const NOMES_PLATAFORMA: Record<string, string> = { superfrete: "SuperFrete", frenet: "Frenet", melhorenvio: "Melhor Envio", envia: "Envia" };
+const NOMES_PLATAFORMA: Record<string, string> = { superfrete: "SuperFrete", frenet: "Frenet", melhorenvio: "Melhor Envio", envia: "Envia", prontoenvios: "Pronto Envios" };
 
 async function chaveExiste(db: D1Database, chave: string): Promise<boolean> {
   if (chave in NOMES_PLATAFORMA) return true;
@@ -158,7 +159,7 @@ adminRotas.get("/transportadoras", async (c) => {
 
   const lista: { chave: string; nome: string; ativa: boolean; subordinada: boolean }[] = [];
   for (const plataforma of Object.keys(NOMES_PLATAFORMA)) {
-    lista.push({ chave: plataforma, nome: NOMES_PLATAFORMA[plataforma], ativa: porChave.get(plataforma) ?? true, subordinada: false });
+    lista.push({ chave: plataforma, nome: NOMES_PLATAFORMA[plataforma], ativa: porChave.get(plataforma) ?? !PLATAFORMAS_NOVAS_DESLIGADAS.includes(plataforma), subordinada: false });
     for (const v of vistas.filter((x) => x.plataforma === plataforma)) {
       lista.push({ chave: v.chave, nome: v.nome, ativa: porChave.get(v.chave) ?? true, subordinada: true });
     }
