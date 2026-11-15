@@ -180,6 +180,13 @@ adminRotas.put("/transportadoras/:chave", async (c) => {
   )
     .bind(chave, corpo.ativa ? 1 : 0)
     .run();
+  if (corpo.ativa && !chave.includes(":")) {
+    await c.env.DB.prepare(
+      "INSERT INTO transportadoras_ativas (transportadora, ativa, atualizado_em) SELECT chave, 1, datetime('now') FROM transportadoras_vistas WHERE plataforma = ? ON CONFLICT(transportadora) DO UPDATE SET ativa = 1, atualizado_em = excluded.atualizado_em",
+    )
+      .bind(chave)
+      .run();
+  }
   await registrarAuditoria(c.env.DB, admin.id, null, corpo.ativa ? "transportadora_ligada" : "transportadora_desligada", chave);
   return c.json({ ok: true });
 });
