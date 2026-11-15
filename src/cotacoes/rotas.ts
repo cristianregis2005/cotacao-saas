@@ -1,3 +1,4 @@
+import { PLATAFORMAS_NOVAS_DESLIGADAS } from "../transportadoras/chaves";
 // Rotas de cotação. Exigem login e usam os tokens do próprio cliente.
 import { Hono } from "hono";
 import type { Env } from "../env";
@@ -40,8 +41,14 @@ async function registrarVistas(db: D1Database, cotacoes: { origem: string; trans
 
 // Chaves das transportadoras que o administrador desligou.
 export async function transportadorasDesligadas(db: D1Database): Promise<string[]> {
-  const { results } = await db.prepare("SELECT transportadora FROM transportadoras_ativas WHERE ativa = 0").all<{ transportadora: string }>();
-  return results.map((r) => r.transportadora);
+  const { results } = await db.prepare("SELECT transportadora, ativa FROM transportadoras_ativas").all<{ transportadora: string; ativa: number }>();
+  const ligadas = new Set(results.filter((r) => r.ativa === 1).map((r) => r.transportadora));
+  const desligadas = results.filter((r) => r.ativa === 0).map((r) => r.transportadora);
+  // Plataformas novas começam desligadas até o administrador liberar.
+  for (const chave of PLATAFORMAS_NOVAS_DESLIGADAS) {
+    if (!ligadas.has(chave)) desligadas.push(chave);
+  }
+  return [...new Set(desligadas)];
 }
 
 const numeroPositivo = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
