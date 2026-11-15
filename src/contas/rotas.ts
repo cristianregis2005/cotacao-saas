@@ -49,7 +49,18 @@ contaRotas.put("/tokens/:transportadora", async (c) => {
     return c.json({ erro: "O e-mail de contato não parece válido." }, 400);
   }
 
-  await salvarToken(c.env.DB, c.env.CHAVE_TOKENS, usuario.id, transportadora, token, contato || null);
+  let tokenGuardado = token;
+  let exibicao: string | undefined;
+  if (transportadora === "prontoenvios") {
+    const [clientId, ...resto] = token.split(":");
+    const clientSecret = resto.join(":").trim();
+    if (!clientId.trim() || clientSecret.length < 10) {
+      return c.json({ erro: "Informe o Client ID e o Client Secret no formato client_id:client_secret." }, 400);
+    }
+    tokenGuardado = JSON.stringify({ client_id: clientId.trim(), client_secret: clientSecret });
+    exibicao = clientId.trim().slice(-4);
+  }
+  await salvarToken(c.env.DB, c.env.CHAVE_TOKENS, usuario.id, transportadora, tokenGuardado, contato || null, exibicao);
   return c.json({ ok: true });
 });
 

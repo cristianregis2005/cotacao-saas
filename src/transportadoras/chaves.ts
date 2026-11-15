@@ -8,6 +8,7 @@ export const CHAVE_DA_ORIGEM: Record<string, string> = {
   Frenet: "frenet",
   "Melhor Envio": "melhorenvio",
   Envia: "envia",
+  "Pronto Envios": "prontoenvios",
 };
 
 // Texto -> minúsculo, sem acento, só letras e números separados por hífen.

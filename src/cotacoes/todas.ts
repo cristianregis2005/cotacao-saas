@@ -7,11 +7,12 @@ import { cotarSuperFrete } from "../carriers/superfrete";
 import { cotarFrenet } from "../carriers/frenet";
 import { cotarMelhorEnvio } from "../carriers/melhorenvio";
 import { cotarEnvia, type EnderecoEnvia } from "../carriers/envia";
+import { cotarProntoEnvios } from "../carriers/prontoenvios";
 import { motivoAmigavel } from "../erros";
 import { CHAVE_DA_ORIGEM, chaveTransportadora } from "../transportadoras/chaves";
 
 export interface CotacaoUnificada {
-  origem: "SuperFrete" | "Frenet" | "Melhor Envio" | "Envia";
+  origem: "SuperFrete" | "Frenet" | "Melhor Envio" | "Envia" | "Pronto Envios";
   transportadora?: string;
   servico?: string;
   preco: number;
@@ -36,6 +37,7 @@ export interface ExtrasCotacao {
   enviaOrigem?: EnderecoEnvia | null; // cadastro do cliente
   enviaDestino?: EnderecoEnvia | null; // destinatário da nota fiscal
   enviaBase?: string; // endereço da API da Envia (sandbox ou produção)
+  prontoBase?: string; // endereço da API da Pronto Envios (produção ou sandbox)
   desligadas?: string[]; // transportadoras desligadas no painel do administrador (chaves: superfrete, frenet...)
 }
 
@@ -111,6 +113,28 @@ export async function cotarTodas(
         );
         avisosEnvia.push(...r.avisos);
         return r.cotacoes.map((c) => ({ origem: "Envia" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, prazoTexto: c.prazoTexto, codigo: c.codigoServico, codigoTransportadora: c.codigoTransportadora }));
+      },
+    },
+    {
+      nome: "Pronto Envios",
+      executar: async () => {
+        const cred = credenciais.prontoenvios;
+        if (!cred) throw semToken("prontoenvios");
+        if (!extras.enviaOrigem) throw new Error("Complete seu endereço de origem em Meus dados.");
+        if (!extras.enviaDestino) throw new Error("Envie a nota fiscal para cotar na Pronto Envios. Ela traz o endereço do destinatário.");
+        const lista = await cotarProntoEnvios(
+          {
+            origem: extras.enviaOrigem,
+            destino: extras.enviaDestino,
+            valor: entrada.valor,
+            peso: entrada.peso,
+            comprimento: entrada.comprimento,
+            largura: entrada.largura,
+            altura: entrada.altura,
+          },
+          { credenciais: JSON.parse(cred.token), base: extras.prontoBase },
+        );
+        return lista.map((c) => ({ origem: "Pronto Envios" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigo, codigoTransportadora: c.codigoTransportadora }));
       },
     },
   ];
