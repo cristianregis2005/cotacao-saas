@@ -1,7 +1,7 @@
 // Guarda, lê e remove os tokens de cada cliente nas transportadoras.
 import { cifrar, decifrar, importarChave } from "../cripto";
 
-export const TRANSPORTADORAS = ["superfrete", "frenet", "melhorenvio", "envia"] as const;
+export const TRANSPORTADORAS = ["superfrete", "frenet", "melhorenvio", "envia", "prontoenvios"] as const;
 export type Transportadora = (typeof TRANSPORTADORAS)[number];
 
 export const NOMES: Record<Transportadora, string> = {
@@ -9,6 +9,7 @@ export const NOMES: Record<Transportadora, string> = {
   frenet: "Frenet",
   melhorenvio: "Melhor Envio",
   envia: "Envia",
+  prontoenvios: "Pronto Envios",
 };
 
 export function ehTransportadora(valor: string): valor is Transportadora {
@@ -42,6 +43,7 @@ export async function salvarToken(
   transportadora: Transportadora,
   token: string,
   contato: string | null,
+  exibicao?: string,
 ): Promise<void> {
   const chave = await importarChave(chaveBase64);
   const { cifrado, iv } = await cifrar(token, chave);
@@ -53,7 +55,7 @@ export async function salvarToken(
         "token_cifrado = excluded.token_cifrado, iv = excluded.iv, final_token = excluded.final_token, " +
         "contato = excluded.contato, atualizado_em = excluded.atualizado_em",
     )
-    .bind(usuarioId, transportadora, cifrado, iv, token.slice(-4), contato)
+    .bind(usuarioId, transportadora, cifrado, iv, exibicao ?? token.slice(-4), contato)
     .run();
 }
 

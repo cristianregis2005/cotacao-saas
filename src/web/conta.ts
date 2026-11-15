@@ -248,14 +248,27 @@ export const CONTA_HTML = `<!doctype html>
     var form = document.createElement("form");
     form.className = "form-token";
     form.hidden = true;
+    var ehPronto = t.transportadora === "prontoenvios";
     var rotuloToken = document.createElement("label");
-    rotuloToken.textContent = "Token da " + t.nome;
+    rotuloToken.textContent = ehPronto ? "Client ID da Pronto Envios" : "Token da " + t.nome;
     var inputToken = document.createElement("input");
-    inputToken.type = "password";
+    inputToken.type = ehPronto ? "text" : "password";
     inputToken.autocomplete = "off";
-    inputToken.placeholder = "Cole o token aqui";
+    inputToken.placeholder = ehPronto ? "Cole o Client ID" : "Cole o token aqui";
     inputToken.required = true;
     rotuloToken.appendChild(inputToken);
+    var rotuloSecret = null;
+    var inputSecret = null;
+    if (ehPronto) {
+      rotuloSecret = document.createElement("label");
+      rotuloSecret.textContent = "Client Secret da Pronto Envios";
+      inputSecret = document.createElement("input");
+      inputSecret.type = "password";
+      inputSecret.autocomplete = "off";
+      inputSecret.placeholder = "Cole o Client Secret";
+      inputSecret.required = true;
+      rotuloSecret.appendChild(inputSecret);
+    }
     var rotuloContato = document.createElement("label");
     rotuloContato.textContent = "E-mail de contato (opcional)";
     var inputContato = document.createElement("input");
@@ -279,6 +292,7 @@ export const CONTA_HTML = `<!doctype html>
     var msg = document.createElement("p");
     msg.className = "msg";
     form.appendChild(rotuloToken);
+    if (rotuloSecret) form.appendChild(rotuloSecret);
     form.appendChild(rotuloContato);
     form.appendChild(dica);
     form.appendChild(botoesForm);
@@ -289,6 +303,7 @@ export const CONTA_HTML = `<!doctype html>
       form.hidden = false;
       acoes.hidden = true;
       inputToken.value = "";
+      if (inputSecret) inputSecret.value = "";
       msg.className = "msg";
       msg.textContent = "";
       inputToken.focus();
@@ -297,6 +312,7 @@ export const CONTA_HTML = `<!doctype html>
       form.hidden = true;
       acoes.hidden = false;
       inputToken.value = "";
+      if (inputSecret) inputSecret.value = "";
       msg.className = "msg";
       msg.textContent = "";
     }
@@ -314,7 +330,7 @@ export const CONTA_HTML = `<!doctype html>
       botaoSalvar.disabled = true;
       msg.className = "msg";
       msg.textContent = "";
-      api("/api/conta/tokens/" + t.transportadora, { token: inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
+      api("/api/conta/tokens/" + t.transportadora, { token: ehPronto ? inputToken.value.trim() + ":" + inputSecret.value.trim() : inputToken.value.trim(), contato: inputContato.value.trim() }, "PUT").then(function (r) {
         botaoSalvar.disabled = false;
         if (!r.ok) { msg.className = "msg erro"; msg.textContent = r.dados.erro || "Não consegui salvar."; return; }
         carregar();
