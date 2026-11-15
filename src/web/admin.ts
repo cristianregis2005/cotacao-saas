@@ -79,6 +79,7 @@ export const ADMIN_HTML = `<!doctype html>
 <div class="casca">
 <nav class="menu-lateral" aria-label="Menu do administrador">
   <a class="marca-admin" href="https://cliquefrete.com.br/" aria-label="Clique Frete - site"><img src="https://cliquefrete.com.br/assets/logo.png" alt="Clique Frete"></a>
+  <a href="#painel" data-menu="painel">Painel</a>
   <a href="#usuarios" data-menu="usuarios">Usuários</a>
   <a href="#planos" data-menu="planos">Planos</a>
   <a href="#transportadoras" data-menu="transportadoras">Transportadoras</a>
@@ -94,6 +95,24 @@ export const ADMIN_HTML = `<!doctype html>
   <p class="msg erro" id="msg-acesso" hidden></p>
 
   <section id="secao" hidden>
+    <div data-painel="painel">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <label>Período
+          <select id="pai-periodo">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+        </label>
+        <button type="button" class="secundario" id="pai-atualizar">Atualizar</button>
+      </div>
+      <p class="msg" id="msg-painel"></p>
+      <div id="pai-numeros" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px"></div>
+      <h3>Evolução por dia</h3>
+      <div id="pai-graficos"></div>
+      <h3>Funil de conversão (usuários cadastrados no período)</h3>
+      <div id="pai-funil"></div>
+    </div>
     <div data-painel="usuarios">
     <div class="cartao" id="lista-usuarios">
       <h2>Usuários</h2>
@@ -124,6 +143,11 @@ export const ADMIN_HTML = `<!doctype html>
         </div>
       </form>
       <p class="msg" id="msg-historico"></p>
+      <div id="pag-historico" hidden><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0">
+        <button type="button" class="secundario" id="hist-anterior">Anterior</button>
+        <span id="hist-numeros"></span>
+        <button type="button" class="secundario" id="hist-proxima">Próxima</button>
+      </div></div>
       <table>
         <thead><tr><th>Data (UTC)</th><th>Cliente</th><th>Origem</th><th>Destino</th><th>Peso</th><th>Medidas</th><th>Valor declarado</th><th>Opções</th><th>Menor preço</th><th>Avisos</th><th>Nota fiscal</th></tr></thead>
         <tbody id="linhas-historico"></tbody>
@@ -692,7 +716,29 @@ export const ADMIN_HTML = `<!doctype html>
     return c && c.length === 8 ? c.slice(0, 5) + "-" + c.slice(5) : (c || "-");
   }
 
-  function carregarHistorico() {
+  var histPagina = 1;
+
+  function desenharNumeros(totalPaginas) {
+    var caixa = $("hist-numeros");
+    caixa.textContent = "";
+    var inicio = Math.max(1, Math.min(histPagina - 4, totalPaginas - 9));
+    var fim = Math.min(totalPaginas, inicio + 9);
+    for (var p = inicio; p <= fim; p++) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = String(p);
+      b.setAttribute("data-pagina", String(p));
+      if (p === histPagina) {
+        b.setAttribute("aria-current", "page");
+      } else {
+        b.className = "secundario";
+      }
+      caixa.appendChild(b);
+    }
+  }
+
+  function carregarHistorico(pagina) {
+    histPagina = pagina || 1;
     var params = [];
     var inicio = $("hist-inicio").value;
     var fim = $("hist-fim").value;
@@ -700,7 +746,9 @@ export const ADMIN_HTML = `<!doctype html>
     if (inicio) params.push("inicio=" + encodeURIComponent(inicio));
     if (fim) params.push("fim=" + encodeURIComponent(fim));
     if (email) params.push("email=" + encodeURIComponent(email));
-    var caminho = "/api/admin/historico" + (params.length ? "?" + params.join("&") : "");
+    params.push("pagina=" + histPagina);
+    params.push("tamanho=50");
+    var caminho = "/api/admin/historico?" + params.join("&");
 
     $("msg-historico").className = "msg";
     $("msg-historico").textContent = "Carregando...";
@@ -710,12 +758,18 @@ export const ADMIN_HTML = `<!doctype html>
       if (!r.ok) {
         $("msg-historico").className = "msg erro";
         $("msg-historico").textContent = r.dados.erro || "Não consegui carregar o histórico.";
+        $("pag-historico").hidden = true;
         return;
       }
       var lista = r.dados.historico;
-      var aviso = lista.length >= 300 ? " Mostrando as 300 mais recentes. Use os filtros para restringir." : "";
+      var total = r.dados.total || 0;
+      var totalPaginas = r.dados.totalPaginas || 1;
       $("msg-historico").className = "msg";
-      $("msg-historico").textContent = (lista.length === 0 ? "Nenhuma cotação encontrada." : lista.length + (lista.length === 1 ? " cotação encontrada." : " cotações encontradas.")) + aviso;
+      $("msg-historico").textContent = total === 0 ? "Nenhuma cotação encontrada." : total + (total === 1 ? " cotação encontrada." : " cotações encontradas.");
+      $("pag-historico").hidden = total === 0;
+      desenharNumeros(totalPaginas);
+      $("hist-anterior").disabled = histPagina <= 1;
+      $("hist-proxima").disabled = histPagina >= totalPaginas;
 
       lista.forEach(function (h) {
         var tr = document.createElement("tr");
@@ -734,6 +788,113 @@ export const ADMIN_HTML = `<!doctype html>
       });
     });
   }
+
+  $("hist-anterior").addEventListener("click", function () { carregarHistorico(histPagina - 1); });
+  $("hist-proxima").addEventListener("click", function () { carregarHistorico(histPagina + 1); });
+  $("hist-numeros").addEventListener("click", function (e) {
+    var alvo = e.target;
+    var p = alvo && alvo.getAttribute ? alvo.getAttribute("data-pagina") : null;
+    if (p) carregarHistorico(parseInt(p, 10));
+  });
+
+  function desenharSerie(titulo, pontos) {
+    var bloco = document.createElement("div");
+    bloco.style.margin = "12px 0";
+    var t = document.createElement("strong");
+    t.textContent = titulo;
+    bloco.appendChild(t);
+    if (!pontos.length) {
+      var vazio = document.createElement("p");
+      vazio.textContent = "Sem registros no período.";
+      bloco.appendChild(vazio);
+      return bloco;
+    }
+    var max = Math.max.apply(null, pontos.map(function (p) { return p.total; }));
+    pontos.forEach(function (p) {
+      var linha = document.createElement("div");
+      linha.style.cssText = "display:flex;gap:8px;align-items:center;font-size:13px;margin:2px 0";
+      var dia = document.createElement("span");
+      dia.style.width = "60px";
+      dia.textContent = p.dia.slice(5).split("-").reverse().join("/");
+      var trilho = document.createElement("div");
+      trilho.style.cssText = "flex:1";
+      var barra = document.createElement("div");
+      barra.style.cssText = "height:12px;border-radius:3px;background:#2563eb;min-width:2px;width:" + Math.round(p.total / max * 100) + "%";
+      trilho.appendChild(barra);
+      var n = document.createElement("span");
+      n.textContent = String(p.total);
+      linha.appendChild(dia);
+      linha.appendChild(trilho);
+      linha.appendChild(n);
+      bloco.appendChild(linha);
+    });
+    return bloco;
+  }
+
+  function carregarPainel() {
+    $("msg-painel").className = "msg";
+    $("msg-painel").textContent = "Carregando...";
+    return api("/api/admin/dashboard?periodo=" + $("pai-periodo").value).then(function (r) {
+      if (!r.ok) {
+        $("msg-painel").className = "msg erro";
+        $("msg-painel").textContent = r.dados.erro || "Não consegui carregar o painel.";
+        return;
+      }
+      $("msg-painel").textContent = "";
+      var t = r.dados.totais;
+      var cartoes = [
+        ["Usuários cadastrados", t.usuarios],
+        ["Novos nos últimos 7 dias", t.novos_semana],
+        ["Em teste", t.em_teste],
+        ["Com plano pago", t.pagantes],
+        ["Cotações no período", t.cotacoes],
+        ["Pedidos de etiqueta no período", t.pedidos],
+        ["Receita no período", reais(Math.round(t.receita * 100))],
+        ["Leads do simulador no período", t.leads]
+      ];
+      var grade = $("pai-numeros");
+      grade.textContent = "";
+      cartoes.forEach(function (cartao) {
+        var caixa = document.createElement("div");
+        caixa.style.cssText = "border:1px solid #e5e7eb;border-radius:8px;padding:12px";
+        var rotulo = document.createElement("div");
+        rotulo.style.cssText = "font-size:13px;color:#6b7280";
+        rotulo.textContent = cartao[0];
+        var valor = document.createElement("strong");
+        valor.style.fontSize = "22px";
+        valor.textContent = String(cartao[1]);
+        caixa.appendChild(rotulo);
+        caixa.appendChild(valor);
+        grade.appendChild(caixa);
+      });
+      var graficos = $("pai-graficos");
+      graficos.textContent = "";
+      graficos.appendChild(desenharSerie("Cadastros por dia", r.dados.series.cadastros));
+      graficos.appendChild(desenharSerie("Cotações por dia", r.dados.series.cotacoes));
+      graficos.appendChild(desenharSerie("Pedidos de etiqueta por dia", r.dados.series.pedidos));
+      var f = r.dados.funil;
+      var etapas = [
+        ["Cadastrados", f.cadastrados],
+        ["Fizeram cotação", f.cotaram],
+        ["Geraram etiqueta", f.etiqueta],
+        ["Assinaram plano", f.pagaram]
+      ];
+      var caixaFunil = $("pai-funil");
+      caixaFunil.textContent = "";
+      var anterior = null;
+      etapas.forEach(function (e) {
+        var linha = document.createElement("p");
+        var pct = anterior ? " (" + Math.round(e[1] / anterior * 100) + "% da etapa anterior)" : "";
+        linha.textContent = e[0] + ": " + e[1] + pct;
+        caixaFunil.appendChild(linha);
+        anterior = e[1];
+      });
+    });
+  }
+
+  $("pai-atualizar").addEventListener("click", carregarPainel);
+  $("pai-periodo").addEventListener("change", carregarPainel);
+  document.querySelector('[data-menu="painel"]').addEventListener("click", carregarPainel);
 
   $("form-historico").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -862,7 +1023,7 @@ export const ADMIN_HTML = `<!doctype html>
     $("msg-transportadoras").textContent = texto;
   }
 
-  var SECOES = ["usuarios", "planos", "transportadoras", "simulador", "historico", "auditoria"];
+  var SECOES = ["painel", "usuarios", "planos", "transportadoras", "simulador", "historico", "auditoria"];
 
   function reaisSimulador(v) {
     return v === null || v === undefined ? "—" : "R$ " + Number(v).toFixed(2).replace(".", ",");
