@@ -60,6 +60,50 @@ adminRotas.get("/auditoria", async (c) => {
 });
 
 // Histórico de cotações de todos os clientes. Filtros opcionais: inicio, fim (AAAA-MM-DD) e email.
+adminRotas.get("/dashboard", async (c) => {
+  const pedido = Number(c.req.query("periodo") ?? "30");
+  const periodo = [7, 30, 90].includes(pedido) ? pedido : 30;
+  const d = "-" + periodo + " days";
+  const db = c.env.DB;
+  const coorte = "SELECT id FROM usuarios WHERE criado_em >= datetime('now', ?)";
+  const serie = (tabela: string) =>
+    db
+      .prepare("SELECT date(criado_em) AS dia, COUNT(*) AS total FROM " + tabela + " WHERE criado_em >= datetime('now', ?) GROUP BY dia ORDER BY dia")
+      .bind(d)
+      .all();
+  const [totais, cadastros, cotacoes, pedidos, funil] = await Promise.all([
+    db
+      .prepare(`SELECT
+          (SELECT COUNT(*) FROM usuarios) AS usuarios,
+          (SELECT COUNT(*) FROM usuarios WHERE criado_em >= datetime('now', '-7 days')) AS novos_semana,
+          (SELECT COUNT(*) FROM usuarios WHERE acesso_ate > datetime('now') AND id NOT IN (SELECT usuario_id FROM pagamentos WHERE status = 'pago')) AS em_teste,
+          (SELECT COUNT(DISTINCT usuario_id) FROM pagamentos WHERE status = 'pago') AS pagantes,
+          (SELECT COUNT(*) FROM historico_cotacoes WHERE criado_em >= datetime('now', ?)) AS cotacoes,
+          (SELECT COUNT(*) FROM pedidos_carrinho WHERE criado_em >= datetime('now', ?)) AS pedidos,
+          (SELECT COALESCE(SUM(valor), 0) FROM pagamentos WHERE status = 'pago' AND pago_em >= datetime('now', ?)) AS receita,
+          (SELECT COUNT(*) FROM leads WHERE criado_em >= datetime('now', ?)) AS leads`)
+      .bind(d, d, d, d)
+      .first(),
+    serie("usuarios"),
+    serie("historico_cotacoes"),
+    serie("pedidos_carrinho"),
+    db
+      .prepare(`SELECT
+          (SELECT COUNT(*) FROM usuarios WHERE criado_em >= datetime('now', ?)) AS cadastrados,
+          (SELECT COUNT(DISTINCT usuario_id) FROM historico_cotacoes WHERE usuario_id IN (${coorte})) AS cotaram,
+          (SELECT COUNT(DISTINCT usuario_id) FROM pedidos_carrinho WHERE usuario_id IN (${coorte})) AS etiqueta,
+          (SELECT COUNT(DISTINCT usuario_id) FROM pagamentos WHERE status = 'pago' AND usuario_id IN (${coorte})) AS pagaram`)
+      .bind(d, d, d, d)
+      .first(),
+  ]);
+  return c.json({
+    periodo,
+    totais,
+    series: { cadastros: cadastros.results, cotacoes: cotacoes.results, pedidos: pedidos.results },
+    funil,
+  });
+});
+
 adminRotas.get("/historico", async (c) => {
   const inicio = c.req.query("inicio") ?? "";
   const fim = c.req.query("fim") ?? "";
@@ -75,19 +119,25 @@ adminRotas.get("/historico", async (c) => {
   if (fim) { condicoes.push("date(h.criado_em) <= ?"); valores.push(fim); }
   if (email) { condicoes.push("lower(u.email) LIKE ?"); valores.push("%" + email.toLowerCase() + "%"); }
   const onde = condicoes.length ? "WHERE " + condicoes.join(" AND ") : "";
+  const de = "FROM historico_cotacoes h JOIN usuarios u ON u.id = h.usuario_id " + onde;
+
+  const tamanhoBruto = parseInt(c.req.query("tamanho") ?? "50", 10);
+  const tamanho = Math.min(100, Math.max(10, isNaN(tamanhoBruto) ? 50 : tamanhoBruto));
+  const paginaBruta = parseInt(c.req.query("pagina") ?? "1", 10);
+  const pagina = Math.max(1, isNaN(paginaBruta) ? 1 : paginaBruta);
+
+  const contagem = await c.env.DB.prepare("SELECT COUNT(*) AS total " + de)
+    .bind(...valores)
+    .first<{ total: number }>();
+  const total = contagem?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / tamanho));
 
   const { results } = await c.env.DB.prepare(
-    `SELECT h.id, h.criado_em, u.email, u.nome, h.cep_origem, h.cep_destino, h.peso, h.comprimento,
-            h.largura, h.altura, h.valor_declarado, h.opcoes, h.menor_preco, h.avisos, h.com_nota
-       FROM historico_cotacoes h
-       JOIN usuarios u ON u.id = h.usuario_id
-       ${onde}
-       ORDER BY h.criado_em DESC
-       LIMIT 300`,
+    "SELECT h.id, h.criado_em, u.email, u.nome, h.cep_origem, h.cep_destino, h.peso, h.comprimento, h.largura, h.altura, h.valor_declarado, h.opcoes, h.menor_preco, h.avisos, h.com_nota " + de + " ORDER BY h.criado_em DESC LIMIT ? OFFSET ?",
   )
-    .bind(...valores)
+    .bind(...valores, tamanho, (pagina - 1) * tamanho)
     .all();
-  return c.json({ historico: results });
+  return c.json({ historico: results, total, pagina, totalPaginas });
 });
 
 // Transportadoras ligadas ou desligadas para a cotação de todos os clientes.
