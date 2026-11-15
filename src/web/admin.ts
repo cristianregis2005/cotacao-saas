@@ -978,7 +978,9 @@ export const ADMIN_HTML = `<!doctype html>
       var corpo = $("linhas-transportadoras");
       corpo.textContent = "";
       if (!r.ok) { mostrarMsgTransportadoras(r.dados.erro || "Não consegui carregar as transportadoras.", "erro"); return; }
+      var ativaPlataforma = true;
       r.dados.transportadoras.forEach(function (t) {
+        if (!t.subordinada) ativaPlataforma = !!t.ativa;
         var tr = document.createElement("tr");
         var nomeCelula = celula(t.nome);
         if (t.subordinada) nomeCelula.style.paddingLeft = "28px";
@@ -992,6 +994,10 @@ export const ADMIN_HTML = `<!doctype html>
         interruptor.setAttribute("role", "switch");
         interruptor.setAttribute("aria-label", "Ligar ou desligar " + t.nome);
         interruptor.checked = !!t.ativa;
+        if (t.subordinada && !ativaPlataforma) {
+          interruptor.disabled = true;
+          tr.style.opacity = "0.5";
+        }
         var trilho = document.createElement("span");
         trilho.className = "trilho";
         trilho.setAttribute("aria-hidden", "true");
@@ -1008,6 +1014,7 @@ export const ADMIN_HTML = `<!doctype html>
               return;
             }
             mostrarMsgTransportadoras(t.nome + (novo ? " ligada." : " desligada."), "ok");
+            if (!t.subordinada) carregarTransportadoras();
             carregarTransportadoras();
           });
         });
