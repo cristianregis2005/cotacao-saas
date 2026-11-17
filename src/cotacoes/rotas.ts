@@ -137,6 +137,7 @@ cotacaoRotas.post("/todas", async (c) => {
       phone: digitos(cadastro.telefone),
       street: cadastro.origem_logradouro,
       number: cadastro.origem_numero,
+      reference: (cadastro.origem_complemento ?? "").trim() || undefined,
       district: cadastro.origem_bairro,
       city: cadastro.origem_cidade,
       state: cadastro.origem_uf,

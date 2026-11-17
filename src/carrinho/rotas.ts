@@ -209,6 +209,7 @@ function lerServico(v: unknown): ServicoEscolhido | null {
 function enderecoEnvia(p: Pessoa): EnderecoEnvia {
   return {
     name: p.name,
+    reference: (p.complement ?? "").trim() || undefined,
     email: p.email ?? "",
     identificationNumber: p.document.replace(/\D/g, ""),
     phone: p.phone.replace(/\D/g, ""),

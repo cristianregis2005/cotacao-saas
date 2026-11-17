@@ -29,6 +29,7 @@ export interface EnderecoEnvia {
   street: string;
   number: string;
   district: string;
+  reference?: string; // complemento vai no campo "reference" da Envia
   city: string;
   state: string;
   postalCode: string;
