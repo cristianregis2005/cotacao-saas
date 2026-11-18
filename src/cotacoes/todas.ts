@@ -21,6 +21,8 @@ export interface CotacaoUnificada {
   codigo?: string | number;              // código do serviço na transportadora (usado no carrinho)
   codigoTransportadora?: string | number;
   precoBase?: number;
+  cotacaoId?: string; // id da cotação na Pronto (quotation_id), usado na compra da etiqueta
+  codigoServico?: string; // código do serviço da transportadora (provider_service_code)
 }
 
 export interface ResultadoCotacoes {
@@ -134,7 +136,7 @@ export async function cotarTodas(
           },
           { credenciais: JSON.parse(cred.token), base: extras.prontoBase },
         );
-        return lista.map((c) => ({ origem: "Pronto Envios" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigo, codigoTransportadora: c.codigoTransportadora }));
+        return lista.map((c) => ({ origem: "Pronto Envios" as const, transportadora: c.transportadora, servico: c.servico, preco: c.preco, prazoDias: c.prazoDias, codigo: c.codigo, codigoTransportadora: c.codigoTransportadora, cotacaoId: c.cotacaoId, codigoServico: c.codigoServico }));
       },
     },
   ];

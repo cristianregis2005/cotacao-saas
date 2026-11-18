@@ -30,6 +30,8 @@ export interface CotacaoPronto {
   prazoDias: number;
   codigo: string; // id da tarifa (rate_id), usado depois para criar o envio
   codigoTransportadora: string;
+  cotacaoId: string; // id da cotação (quotation_id), exigido pela Pronto junto com o rate_id
+  codigoServico?: string; // código do serviço da transportadora (provider_service_code)
 }
 
 interface Tarifa {
@@ -41,6 +43,7 @@ interface Tarifa {
   provider_service_name: string;
   total_value_with_protection: number | string | null;
   days: number | null;
+  provider_service_code?: string | null;
 }
 
 interface Cotacao {
@@ -151,5 +154,7 @@ export async function cotarProntoEnvios(entrada: EntradaPronto, opcoes: OpcoesPr
       prazoDias: t.days ?? 0,
       codigo: t.id,
       codigoTransportadora: t.provider_name,
+      cotacaoId: criada.id,
+      codigoServico: t.provider_service_code ?? undefined,
     }));
 }
