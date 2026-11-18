@@ -197,6 +197,16 @@ simuladorRotas.post("/cotacao", async (c) => {
   if (!opcoes) return c.json({ erro: "Não conseguimos simular agora. Tente de novo em instantes." }, 503);
 
   const menorPreco = opcoes[0].preco;
+  const cf = (c.req.raw as Request & { cf?: { city?: string; regionCode?: string } }).cf;
+  try {
+    await c.env.DB.prepare("DELETE FROM simulacoes_publicas_log WHERE criado_em < datetime('now', '-90 days')").run();
+    await c.env.DB
+      .prepare("INSERT INTO simulacoes_publicas_log (id, ip, cidade, uf, cep_destino, menor_preco) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(crypto.randomUUID(), ip, cf?.city ?? null, cf?.regionCode ?? null, cepDestino, menorPreco)
+      .run();
+  } catch (exc) {
+    console.log("[simulador] não registrei o log: " + String(exc));
+  }
   if (email) {
     try {
       await c.env.DB
