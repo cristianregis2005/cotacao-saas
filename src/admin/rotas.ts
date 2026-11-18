@@ -375,6 +375,28 @@ adminRotas.get("/simulador", async (c) => {
   return c.json({ ativo: cfg ? cfg.valor === "1" : true, leads, totalLeads: total?.n ?? 0, simulacoesPorDia: porDia, acessos });
 });
 
+adminRotas.get("/cotacoes/maximo-opcoes", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  if (!admin.is_admin) return c.json({ erro: "Acesso restrito ao administrador." }, 403);
+  const cfg = await c.env.DB.prepare("SELECT valor FROM configuracoes WHERE chave = 'maximo_opcoes_cotacao'").first<{ valor: string }>();
+  return c.json({ maximo: cfg ? Number(cfg.valor) : 10 });
+});
+
+adminRotas.put("/cotacoes/maximo-opcoes", async (c) => {
+  const admin = await usuarioDaSessao(c);
+  if (!admin) return c.json({ erro: "Faça login." }, 401);
+  if (!admin.is_admin) return c.json({ erro: "Acesso restrito ao administrador." }, 403);
+  const corpo = (await c.req.json<{ maximo?: unknown }>().catch(() => null)) ?? {};
+  const n = Number(corpo.maximo);
+  if (!Number.isInteger(n) || n < 1 || n > 50) return c.json({ erro: "Informe um número entre 1 e 50." }, 400);
+  await c.env.DB.prepare(
+    "INSERT INTO configuracoes (chave, valor, atualizado_em) VALUES ('maximo_opcoes_cotacao', ?, datetime('now')) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor, atualizado_em = excluded.atualizado_em",
+  ).bind(String(n)).run();
+  await registrarAuditoria(c.env.DB, admin.id, null, "maximo_opcoes_alterado", String(n));
+  return c.json({ ok: true, maximo: n });
+});
+
 adminRotas.put("/simulador", async (c) => {
   const admin = await usuarioDaSessao(c);
   if (!admin) return c.json({ erro: "Faça login." }, 401);

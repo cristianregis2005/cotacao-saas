@@ -188,5 +188,7 @@ cotacaoRotas.post("/todas", async (c) => {
     console.log("[historico] falha ao registrar cotação: " + String(exc));
   }
 
-  return c.json({ ...resultado, uso: { ativo: true, motivo: "ativo", acesso_ate: acesso.acesso_ate } });
+  const cfgMaximo = await c.env.DB.prepare("SELECT valor FROM configuracoes WHERE chave = 'maximo_opcoes_cotacao'").first<{ valor: string }>();
+  const maximoOpcoes = Math.min(50, Math.max(1, Number(cfgMaximo?.valor ?? 10) || 10));
+  return c.json({ ...resultado, maximoOpcoes, uso: { ativo: true, motivo: "ativo", acesso_ate: acesso.acesso_ate } });
 });
