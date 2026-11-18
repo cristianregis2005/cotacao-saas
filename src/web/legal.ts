@@ -102,6 +102,7 @@ const PRIVACIDADE_CORPO = `
   <li><strong>Notas fiscais enviadas ao carrinho:</strong> chave da nota, dados do remetente e do destinatário (nome, CPF ou CNPJ, telefone e endereço), valor e itens. Esses dados de terceiros vêm da nota que você envia, e você declara que tem base legal para usá-los.</li>
   <li><strong>Pedidos criados:</strong> identificação do pedido na transportadora, valor e data.</li>
   <li><strong>Registros de segurança:</strong> datas de acesso e ações administrativas, como troca de plano e de token.</li>
+  <li><strong>Simulador público (sem conta):</strong> endereço IP do visitante, cidade e UF estimadas pela conexão, e os CEPs e medidas simulados. Esses registros são apagados automaticamente após 90 dias.</li>
 </ul>
 
 <h2>3. Para que usamos</h2>
@@ -110,6 +111,7 @@ const PRIVACIDADE_CORPO = `
   <li>Controlar o prazo de acesso de cada conta (7 dias gratuitos ou 30 dias de plano pago).</li>
   <li>Preencher o endereço a partir do CEP, consultando o serviço ViaCEP.</li>
   <li>Garantir segurança, prevenir fraudes e manter registros de auditoria.</li>
+  <li>Medir o uso do simulador público e identificar abusos, como o excesso de simulações por hora.</li>
   <li>Cumprir obrigações legais e responder a pedidos de autoridades competentes.</li>
 </ul>
 
@@ -120,7 +122,7 @@ const PRIVACIDADE_CORPO = `
 <p>Não vendemos dados pessoais.</p>
 
 <h2>5. Por quanto tempo guardamos</h2>
-<p>Mantemos os dados enquanto a conta estiver ativa. Quando você exclui a conta, apagamos seus dados pessoais, tokens, cotações e pedidos. Guardamos apenas um código criptografado (HMAC) do seu e-mail e do seu CPF/CNPJ, que não permite ler esses dados, para impedir o uso repetido da franquia gratuita. Essa base é o interesse legítimo de prevenir fraudes (art. 7º, IX, da LGPD). Dados que precisarmos manter por obrigação legal ou para defesa em processos também são preservados pelo tempo exigido.</p>
+<p>Mantemos os dados enquanto a conta estiver ativa. Os registros do simulador público (IP, cidade, UF e simulações) são apagados automaticamente após 90 dias. Quando você exclui a conta, apagamos seus dados pessoais, tokens, cotações e pedidos. Guardamos apenas um código criptografado (HMAC) do seu e-mail e do seu CPF/CNPJ, que não permite ler esses dados, para impedir o uso repetido da franquia gratuita. Essa base é o interesse legítimo de prevenir fraudes (art. 7º, IX, da LGPD). Dados que precisarmos manter por obrigação legal ou para defesa em processos também são preservados pelo tempo exigido.</p>
 
 <h2>6. Segurança</h2>
 <p>Usamos conexão criptografada (HTTPS). Os tokens das transportadoras são cifrados com AES-GCM. Os códigos de acesso são guardados só como hash e têm validade curta. O acesso administrativo é restrito e registrado.</p>
