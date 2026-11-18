@@ -83,6 +83,7 @@ export const ADMIN_HTML = `<!doctype html>
   <a href="#usuarios" data-menu="usuarios">Usuários</a>
   <a href="#planos" data-menu="planos">Planos</a>
   <a href="#transportadoras" data-menu="transportadoras">Transportadoras</a>
+  <a href="#parametros" data-menu="parametros">Parâmetros</a>
   <a href="#simulador" data-menu="simulador">Simulador</a>
   <a href="#historico" data-menu="registros">Registros</a>
   <div class="submenu" id="submenu-registros" hidden>
@@ -155,6 +156,25 @@ export const ADMIN_HTML = `<!doctype html>
     </div>
     </div>
 
+    <div data-painel="parametros">
+    <div class="cartao" id="secao-parametros">
+      <h2>Parâmetros</h2>
+      <h3>Cotações</h3>
+      <p class="suave">Quantas opções de frete aparecem na tela de cotação (as mais baratas).</p>
+      <p><label>Máximo de opções <input id="max-opcoes" type="number" min="1" max="50" style="width:80px"></label> <button class="botao" id="btn-max-opcoes" type="button">Salvar</button> <span class="suave" id="msg-max-opcoes"></span></p>
+      <h3>Simulador do site</h3>
+      <p class="suave">Liga e desliga a simulação pública de frete em /simular-economia/.</p>
+      <div class="linha-interruptor">
+        <span>Simulador ligado</span>
+        <label class="interruptor">
+          <input type="checkbox" id="sim-ativo" role="switch" aria-label="Ligar ou desligar o simulador">
+          <span class="trilho" aria-hidden="true"></span>
+        </label>
+      </div>
+      <p class="msg" id="msg-simulador"></p>
+    </div>
+    </div>
+
     <div data-painel="transportadoras">
     <div class="cartao" id="secao-transportadoras">
       <h2>Transportadoras</h2>
@@ -171,14 +191,6 @@ export const ADMIN_HTML = `<!doctype html>
     <div class="cartao" id="secao-simulador">
       <h2>Simulador do site</h2>
       <p class="suave">Simulação pública de frete em /simular-economia/. Ela usa a conta do administrador para cotar.</p>
-      <div class="linha-interruptor">
-        <span>Simulador ligado</span>
-        <label class="interruptor">
-          <input type="checkbox" id="sim-ativo" role="switch" aria-label="Ligar ou desligar o simulador">
-          <span class="trilho" aria-hidden="true"></span>
-        </label>
-      </div>
-      <p class="msg" id="msg-simulador"></p>
 
       <h3>Simulações por dia</h3>
       <p class="suave">Pedidos válidos feitos no formulário, contados por dia (inclui os bloqueados pelo limite).</p>
@@ -1039,7 +1051,18 @@ export const ADMIN_HTML = `<!doctype html>
     $("msg-transportadoras").textContent = texto;
   }
 
-  var SECOES = ["painel", "usuarios", "planos", "transportadoras", "simulador", "historico", "auditoria"];
+  function carregarMaxOpcoes() {
+    api("/api/admin/cotacoes/maximo-opcoes").then(function (r) {
+      if (r.ok) $("max-opcoes").value = r.dados.maximo;
+    });
+  }
+  $("btn-max-opcoes").addEventListener("click", function () {
+    api("/api/admin/cotacoes/maximo-opcoes", { maximo: Number($("max-opcoes").value) }, "PUT").then(function (r) {
+      $("msg-max-opcoes").textContent = r.ok ? "Salvo." : (r.dados.erro || "Erro ao salvar.");
+    });
+  });
+  carregarMaxOpcoes();
+  var SECOES = ["painel", "usuarios", "planos", "transportadoras", "parametros", "simulador", "historico", "auditoria"];
 
   function reaisSimulador(v) {
     return v === null || v === undefined ? "—" : "R$ " + Number(v).toFixed(2).replace(".", ",");

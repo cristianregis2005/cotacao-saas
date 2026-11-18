@@ -469,7 +469,7 @@ export const PAGINA_HTML = `<!doctype html>
   }
 
   // Mostra no máximo as opções mais baratas. A ordenação escolhida vale para essas opções.
-  var MAXIMO_OPCOES = 10;
+  var MAXIMO_OPCOES = 10; // valor padrão; o servidor envia o limite configurado no admin
   function ordenarPor(campo, sentido) {
     return function (a, b) {
       var va = a[campo], vb = b[campo];
@@ -551,6 +551,7 @@ export const PAGINA_HTML = `<!doctype html>
   }
 
   function mostrarResultados(resultado) {
+    if (resultado.maximoOpcoes) MAXIMO_OPCOES = resultado.maximoOpcoes;
     resultadoAtual = resultado.cotacoes || [];
     atualizarFreteNota();
     ordem = { campo: "preco", sentido: 1 };
