@@ -369,7 +369,10 @@ adminRotas.get("/simulador", async (c) => {
   const { results: porDia } = await c.env.DB.prepare(
     "SELECT substr(janela, 1, 10) AS dia, SUM(contador) AS total FROM simulacoes_publicas_limite GROUP BY dia ORDER BY dia DESC LIMIT 30",
   ).all<{ dia: string; total: number }>();
-  return c.json({ ativo: cfg ? cfg.valor === "1" : true, leads, totalLeads: total?.n ?? 0, simulacoesPorDia: porDia });
+  const { results: acessos } = await c.env.DB.prepare(
+    "SELECT criado_em, ip, cidade, uf, cep_destino, menor_preco FROM simulacoes_publicas_log ORDER BY criado_em DESC LIMIT 200",
+  ).all();
+  return c.json({ ativo: cfg ? cfg.valor === "1" : true, leads, totalLeads: total?.n ?? 0, simulacoesPorDia: porDia, acessos });
 });
 
 adminRotas.put("/simulador", async (c) => {
