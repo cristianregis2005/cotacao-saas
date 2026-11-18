@@ -187,6 +187,13 @@ export const ADMIN_HTML = `<!doctype html>
         <tbody id="linhas-simulacoes"></tbody>
       </table>
 
+      <h3>Acessos ao simulador (IP, cidade e UF)</h3>
+      <p class="suave">Últimos 200 acessos, em horário de Brasília. Apagados automaticamente após 90 dias.</p>
+      <table>
+        <thead><tr><th>Data</th><th>IP</th><th>Cidade</th><th>UF</th><th>CEP destino</th><th>Menor preço</th></tr></thead>
+        <tbody id="linhas-acessos"></tbody>
+      </table>
+
       <h3>Leads</h3>
       <p><a class="botao" href="/api/admin/simulador/leads.csv">Exportar leads (CSV)</a> <span class="suave" id="total-leads"></span></p>
       <table>
@@ -706,10 +713,12 @@ export const ADMIN_HTML = `<!doctype html>
 
   // ---- Histórico de cotações ----
 
+  // O banco guarda em UTC ("AAAA-MM-DD HH:MM:SS"). Mostramos no horário de Brasília.
   function formatarDataHora(texto) {
     if (!texto || texto.length < 16) return texto || "-";
-    var p = texto.slice(0, 10).split("-");
-    return p[2] + "/" + p[1] + "/" + p[0] + " " + texto.slice(11, 16);
+    var d = new Date(texto.replace(" ", "T") + "Z");
+    if (isNaN(d.getTime())) return texto;
+    return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
   function formatarCep(c) {
@@ -1055,11 +1064,23 @@ export const ADMIN_HTML = `<!doctype html>
         tr.appendChild(celula(String(x.total)));
         linhasDias.appendChild(tr);
       });
+      var linhasAcessos = $("linhas-acessos");
+      linhasAcessos.textContent = "";
+      (d.acessos || []).forEach(function (a) {
+        var tr = document.createElement("tr");
+        tr.appendChild(celula(formatarDataHora(a.criado_em)));
+        tr.appendChild(celula(a.ip));
+        tr.appendChild(celula(a.cidade || "-"));
+        tr.appendChild(celula(a.uf || "-"));
+        tr.appendChild(celula(formatarCep(a.cep_destino)));
+        tr.appendChild(celula(reaisSimulador(a.menor_preco)));
+        linhasAcessos.appendChild(tr);
+      });
       var linhasLeads = $("linhas-leads");
       linhasLeads.textContent = "";
       d.leads.forEach(function (l) {
         var tr = document.createElement("tr");
-        tr.appendChild(celula(l.criado_em));
+        tr.appendChild(celula(formatarDataHora(l.criado_em)));
         tr.appendChild(celula(l.email));
         tr.appendChild(celula(l.cep_destino));
         tr.appendChild(celula(reaisSimulador(l.valor_pago_hoje)));
