@@ -591,7 +591,7 @@ export const PAGINA_HTML = `<!doctype html>
       largura: numero("largura"),
       altura: numero("altura"),
       valorDeclarado: numero("valor") || 0,
-      destinatario: dadosNfe ? dadosNfe.destinatario : null
+      destinatario: dadosNfe ? dadosNfe.destinatario : (dceDestinatarioParaCotacao() || null)
     };
     api("/api/cotacoes/todas", corpo).then(function (r) {
       botao.disabled = false;
@@ -1089,6 +1089,13 @@ export const PAGINA_HTML = `<!doctype html>
     var total = totalDce();
     texto($("dce-total"), total > 0 ? "Total declarado: " + reais(total) : "");
     if (!dadosNfe && total > 0) $("valor").value = String(Math.round(total * 100) / 100);
+  }
+
+  function dceDestinatarioParaCotacao() {
+    if (!$("dce-cep").value.trim()) return null;
+    var dce = montarDce();
+    if (typeof dce !== "object") return null;
+    return dce.destinatario;
   }
 
   function montarDce() {
