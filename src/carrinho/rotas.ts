@@ -19,6 +19,8 @@ import { cancelarEtiquetaEnvia, gerarEtiquetaEnvia } from "../carriers/enviaEtiq
 import { recusaCarrinho, traduzirRecusaEnvia } from "../erros";
 import { transportadorasDesligadas } from "../cotacoes/rotas";
 import { chaveTransportadora } from "../transportadoras/chaves";
+import { PRONTO_BASE_PADRAO } from "../carriers/prontoenvios";
+import { comprarEtiquetaPronto, PRONTO_BASE_SANDBOX } from "../carriers/prontoEtiqueta";
 
 export const carrinhoRotas = new Hono<{ Bindings: Env }>();
 
@@ -201,6 +203,7 @@ function lerServico(v: unknown): ServicoEscolhido | null {
     precoBase: typeof o.precoBase === "number" ? o.precoBase : undefined,
     preco: o.preco,
     prazoDias: typeof o.prazoDias === "number" ? o.prazoDias : undefined,
+    cotacaoId: typeof o.cotacaoId === "string" ? o.cotacaoId : undefined,
   };
 }
 
@@ -318,6 +321,92 @@ async function comprarEtiquetaEnvia(
   });
 }
 
+// ---- Pronto Envios: compra da etiqueta com o rate_id e o quotation_id da cotação ----
+
+async function comprarEtiquetaProntoCarrinho(
+  c: Context<{ Bindings: Env }>,
+  usuarioId: string,
+  dados: DadosNfe,
+  servico: ServicoEscolhido,
+) {
+  if ((await transportadorasDesligadas(c.env.DB)).includes("prontoenvios")) {
+    return c.json({ erro: "A Pronto Envios está desativada no momento. Escolha outra opção de frete." }, 400);
+  }
+  if (servico.cotacaoId === undefined || servico.codigo === undefined) {
+    return c.json({ erro: "Cotação da Pronto Envios incompleta. Refaça a cotação e tente de novo." }, 400);
+  }
+  if (!dados.semNota) {
+    const existente = await c.env.DB.prepare(
+      "SELECT 1 AS achou FROM pedidos_carrinho WHERE usuario_id = ? AND transportadora = 'prontoenvios' AND chave_nfe = ?",
+    )
+      .bind(usuarioId, dados.chave)
+      .first();
+    if (existente) {
+      return c.json(
+        { erro: "Esta nota já foi enviada ao carrinho da Pronto Envios. Confira no painel antes de tentar de novo." },
+        409,
+      );
+    }
+  }
+
+  const credenciais = await lerCredenciais(c.env.DB, c.env.CHAVE_TOKENS, usuarioId);
+  const cred = credenciais.prontoenvios;
+  if (!cred) return c.json({ erro: "Configure seu token da Pronto Envios em Minha conta." }, 400);
+  let par: { client_id: string; client_secret: string };
+  try {
+    par = JSON.parse(cred.token) as { client_id: string; client_secret: string };
+  } catch {
+    return c.json({ erro: "Credenciais da Pronto Envios inválidas. Configure de novo em Minha conta." }, 400);
+  }
+  if (!par.client_id || !par.client_secret) {
+    return c.json({ erro: "Credenciais da Pronto Envios incompletas. Configure de novo em Minha conta." }, 400);
+  }
+
+  // Ambiente de testes: a variável PRONTO_AMBIENTE = "sandbox" usa o sandbox da Pronto.
+  const ambiente = (c.env as unknown as Record<string, string | undefined>).PRONTO_AMBIENTE;
+  const resultado = await comprarEtiquetaPronto(
+    {
+      rateId: String(servico.codigo),
+      cotacaoId: servico.cotacaoId,
+      origem: enderecoEnvia(dados.remetente),
+      destino: enderecoEnvia(dados.destinatario),
+      valorDeclarado: dados.valorDeclarado ?? 0,
+      itens: dados.itens.map((i) => ({ descricao: i.descricao, quantidade: i.quantidade, valorUnitario: i.valorUnitario })),
+      pedidoId: dados.semNota ? undefined : dados.chave,
+    },
+    { credenciais: par, base: ambiente === "sandbox" ? PRONTO_BASE_SANDBOX : PRONTO_BASE_PADRAO },
+  );
+  if (!resultado.ok) {
+    return c.json({ erro: resultado.mensagem }, 502);
+  }
+
+  const e = resultado.etiqueta;
+  try {
+    await c.env.DB.prepare(
+      "INSERT INTO pedidos_carrinho (id, usuario_id, transportadora, chave_nfe, codigo_externo, status, preco, etiqueta_url) VALUES (?, ?, 'prontoenvios', ?, ?, 'comprada', ?, ?)",
+    )
+      .bind(crypto.randomUUID(), usuarioId, dados.chave, e.id, servico.preco, e.etiquetaUrl)
+      .run();
+  } catch (exc) {
+    console.log("[carrinho] etiqueta Pronto comprada e não registrada. Id " + e.id + ": " + String(exc));
+    return c.json(
+      { erro: "A etiqueta foi comprada (id " + e.id + "), mas não consegui registrar. Avise o suporte antes de tentar de novo." },
+      500,
+    );
+  }
+
+  return c.json({
+    ok: true,
+    transportadora: "Pronto Envios",
+    codigo: e.id,
+    rastreio: e.rastreio,
+    status: "comprada",
+    preco: servico.preco,
+    etiqueta: e.etiquetaUrl,
+    avisos: resultado.avisos,
+  });
+}
+
 // DELETE /api/carrinho/pedidos
 // Corpo: { origem, chave }. Remove o registro local do envio para liberar a nota.
 // Use só depois de cancelar ou apagar o pedido no painel da transportadora.
@@ -392,6 +481,9 @@ carrinhoRotas.post("/enviar", async (c) => {
   const servico = lerServico(corpo.servico);
   if (!servico) return c.json({ erro: "Escolha uma opção de frete na tabela." }, 400);
 
+  if (servico.origem === "Pronto Envios") {
+    return comprarEtiquetaProntoCarrinho(c, usuario.id, dados, servico);
+  }
   const transportadora = ORIGENS[servico.origem];
   if (!transportadora) {
     return c.json({ erro: `O envio ao carrinho da ${servico.origem} ainda não está disponível.` }, 400);
