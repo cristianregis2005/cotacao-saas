@@ -771,7 +771,7 @@ export const PAGINA_HTML = `<!doctype html>
       volume: ultimaEntrada,
       servico: {
         origem: c.origem, transportadora: c.transportadora, servico: c.servico, codigo: c.codigo,
-        codigoTransportadora: c.codigoTransportadora, precoBase: c.precoBase, preco: c.preco, prazoDias: c.prazoDias
+        codigoTransportadora: c.codigoTransportadora, cotacaoId: c.cotacaoId, precoBase: c.precoBase, preco: c.preco, prazoDias: c.prazoDias
       }
     };
     api("/api/carrinho/enviar", corpo).then(function (r) {

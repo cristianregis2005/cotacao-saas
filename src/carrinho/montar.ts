@@ -21,6 +21,7 @@ export interface ServicoEscolhido {
   precoBase?: number;
   preco: number;
   prazoDias?: number;
+  cotacaoId?: string; // id da cotação na Pronto (quotation_id)
 }
 
 const digitos = (t: string | null | undefined): string => (t ?? "").replace(/\D/g, "");
